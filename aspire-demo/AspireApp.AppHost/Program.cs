@@ -21,9 +21,6 @@ var storage = builder.AddAzureStorage("storage")
         // SECURITY ISSUE #2: Set minimum TLS version to 1.0 (should be 1.2)
         storageAccount.MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_0;
         
-        // Additional insecure settings for demonstration
-        storageAccount.AllowSharedKeyAccess = true; // Should use Azure AD only
-        
         // Disable secure transfer (allows HTTP)
         storageAccount.EnableHttpsTrafficOnly = false;
     });

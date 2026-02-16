@@ -24,6 +24,7 @@ engine:
         token: ${{ secrets.GH_AW_AGENT_TOKEN }}
         path: shared-standards
 safe-outputs:
+  github-token: ${{ secrets.GH_AW_AGENT_TOKEN }}
   add-comment:
     max: 1
     hide-older-comments: true

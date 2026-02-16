@@ -1,0 +1,70 @@
+name: Terraform Deployment
+
+# ============================================================================
+# CHILD WORKFLOW - Calls Reusable Parent Workflow
+# ============================================================================
+# This workflow calls the centralized reusable workflow for Azure Terraform
+# deployments. The parent workflow handles validation, security scanning,
+# planning, and deployment with OIDC authentication.
+# ============================================================================
+
+on:
+  # Trigger on pushes to main branch (after PR merge)
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraform-deploy.yml'
+
+  # Trigger on pull requests to main (for plan validation)
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraform-deploy.yml'
+
+  # Allow manual triggering for testing and emergency deployments
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment for deployment'
+        required: false
+        type: choice
+        options:
+          - production
+          - staging
+          - development
+        default: 'production'
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+  issues: write
+  security-events: write
+  
+jobs:
+  # Call the parent reusable workflow from the central repository
+  deploy:
+    name: Deploy to Azure
+    uses: nathlan/.github-workflows/.github/workflows/azure-terraform-deploy.yml@main
+
+    with:
+      # REQUIRED: Deployment environment (must match environment in repo settings)
+      environment: ${{ inputs.environment || 'production' }}
+
+      # REQUIRED: Working directory containing Terraform code
+      working-directory: 'terraform'
+
+      # OPTIONAL: Override Azure region if needed
+      azure-region: 'australiaeast'
+
+    secrets:
+      # REQUIRED: Azure OIDC credentials (configure in repository settings)
+      # SECURITY: Two separate User-Assigned Managed Identities for least-privilege access
+      AZURE_CLIENT_ID_PLAN: ${{ secrets.AZURE_CLIENT_ID_PLAN }}   # Reader role for plan
+      AZURE_CLIENT_ID_APPLY: ${{ secrets.AZURE_CLIENT_ID_APPLY }} # Owner role for apply
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}

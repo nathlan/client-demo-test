@@ -1,0 +1,25 @@
+## Security and compliance scanning for Terraform code - Checkov configuration
+
+# Scan Terraform code only
+framework:
+- terraform
+
+# Don't download external modules via Checkov, use `terraform init` instead 
+download-external-modules: false
+
+# Skip checks with justification
+skip-check:
+- CKV_TF_1 # Registry modules use version constraints, not commit hashes
+
+# Output settings
+compact: true
+quiet: true
+output: 
+- cli
+- sarif
+output-file-path: console,results.sarif
+
+# Fail deployment on error
+soft-fail: false
+
+# For more options: https://www.checkov.io/2.Basics/CLI%20Command%20Reference.html

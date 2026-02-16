@@ -3,6 +3,7 @@ description: Grumpy compliance officer that validates code against nathlan/share
 name: Grumpy Compliance Officer
 argument-hint: Provide file paths or glob patterns to check (e.g., "terraform/", "src/**/*.py"). Leave blank to check all workspace files.
 tools: [vscode/askQuestions, read, search, github/get_file_contents, github/search_repositories]
+model: Claude Haiku 4.5 (copilot)
 ---
 
 # Grumply Compliance Checker

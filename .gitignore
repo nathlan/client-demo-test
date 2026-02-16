@@ -18,6 +18,10 @@ terraform.rc
 *.auto.tfvars
 *.auto.tfvars.json
 
+# .NET / Aspire
+bin/
+obj/
+
 # IDE
 .idea/
 *.swp

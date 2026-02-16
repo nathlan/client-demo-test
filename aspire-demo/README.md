@@ -27,7 +27,6 @@ storageAccount.MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_0;
 ### 3. **Additional Security Issues**
 ```csharp
 storageAccount.AllowSharedKeyAccess = true; // Should use Azure AD only
-storageAccount.IsHttpsOnly = false; // Should require HTTPS
 storageAccount.EnableHttpsTrafficOnly = false; // Allows HTTP traffic
 ```
 
@@ -64,7 +63,6 @@ var storage = builder.AddAzureStorage("storage")
         storageAccount.AllowBlobPublicAccess = false;           // Disable public access
         storageAccount.MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_2;  // Use TLS 1.2
         storageAccount.AllowSharedKeyAccess = false;            // Require Azure AD
-        storageAccount.IsHttpsOnly = true;                      // Require HTTPS
         storageAccount.EnableHttpsTrafficOnly = true;           // Enforce HTTPS
     });
 ```

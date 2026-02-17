@@ -16,12 +16,12 @@ var storage = builder.AddAzureStorage("storage")
             .Single();
 
         // SECURITY ISSUE #1: Enable public blob access (should be disabled)
-        storageAccount.AllowBlobPublicAccess = true;
+        storageAccount.AllowBlobPublicAccess = false;
         
-        // SECURITY ISSUE #2: Set minimum TLS version to 1.1 (should be 1.2 at a minimum)
-        storageAccount.MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_1;
+        // Setting to TLS 1.3 to resolve issue
+        storageAccount.MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_3;
         
-        // Disable secure transfer (allows HTTP)
+        // Still keeping this disabled
         storageAccount.EnableHttpsTrafficOnly = false;
 
         // SECURITY ISSUE #3: No diagnostic settings are configured for this storage account.

@@ -15,17 +15,11 @@ var storage = builder.AddAzureStorage("storage")
             .OfType<StorageAccount>()
             .Single();
 
-        // SECURITY ISSUE #1: Enable public blob access (should be disabled)
-        storageAccount.AllowBlobPublicAccess = false;
+        storageAccount.AllowBlobPublicAccess = true;
         
-        // Setting to TLS 1.3 to resolve issue
         storageAccount.MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_3;
         
-        // Still keeping this disabled
         storageAccount.EnableHttpsTrafficOnly = false;
-
-        // SECURITY ISSUE #3: No diagnostic settings are configured for this storage account.
-        // Logs and metrics are not shipped to Log Analytics, Event Hub, or another storage account.
     });
 
 // Add blob service to the storage account

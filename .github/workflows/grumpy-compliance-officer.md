@@ -72,10 +72,14 @@ When running on a PR:
 
 ### Step 1: Access Memory
 
-Use the cache memory at `/tmp/gh-aw/cache-memory/` to:
-- Check if you've reviewed this PR before (`/tmp/gh-aw/cache-memory/pr-${{ github.event.pull_request.number }}.json`)
-- Read your previous review summary to understand what you found last time
-- Check the global review log (`/tmp/gh-aw/cache-memory/reviews.json`) for recurring patterns across PRs in this repo
+Read the cache memory at `/tmp/gh-aw/cache-memory/` **before doing anything else**:
+
+1. **Read PR-specific state** from `/tmp/gh-aw/cache-memory/pr-${{ github.event.pull_request.number }}.json`
+   - If this file exists, **this is a subsequent review** — the file contains your prior violations, comment IDs, thread IDs, and review history
+   - If this file does not exist, **this is the first review** of this PR
+2. **Read the global patterns log** from `/tmp/gh-aw/cache-memory/reviews.json` for recurring violation patterns across PRs
+
+The PR memory file is the **primary source of truth** for what you previously found and commented on. It eliminates the need to parse comment bodies to identify your prior work.
 
 ### Step 2: Fetch Pull Request Details
 
@@ -83,8 +87,14 @@ Use the GitHub tools to get the pull request details:
 - Get the PR with number `${{ github.event.pull_request.number }}` in repository `${{ github.repository }}`
 - Get the list of files changed in the PR
 - Review the diff for each changed file
-- Fetch existing PR review comments (with their comment IDs and thread IDs) created by this workflow
-- Identify comments via the `gh-aw-workflow-id: grumpy-compliance-officer` marker in the body (the workflow name without .md extension)
+
+**If this is a subsequent review** (PR memory file exists from Step 1):
+- You already have your prior comment IDs and thread IDs from memory — no need to search for them
+- Verify the comment/thread IDs are still valid by spot-checking one via the GitHub API
+
+**If this is the first review** (no PR memory file):
+- Check if there are any existing review threads with the `<!-- gh-aw-workflow-id: grumpy-compliance-officer -->` marker (in case memory was lost but comments exist from a prior cache expiry)
+- For each found comment, record: the **comment ID** (numeric), the **thread ID** (GraphQL `PRRT_...`), the **file path**, and the **standard/rule** referenced
 
 ### Step 3: Read shared-standards and Check Compliance
 
@@ -122,39 +132,47 @@ Do not add or assume additional compliance checks beyond what is documented in s
 
 **For every issue found: Reference the specific rule/section from shared-standards that was violated.**
 
-### Step 4: Reconcile Existing Comments and Report New Violations
+### Step 4: Reconcile Existing Comments and Report Violations
 
-**Initial Review (PR opened/reopened):**
+You MUST follow this algorithm precisely. Do NOT create duplicate comments for violations you already commented on.
 
-1) **Analyze all changed files** against the standards
-2) **Create review comments** for each violation using `create-pull-request-review-comment` (max 10)
-   - Reference the specific standard violated
-   - Show file and line where the violation is
-   - Explain what is non-compliant and why
-   - Provide the fix
-3) **Submit a consolidated review** using `submit-pull-request-review`:
-   - If violations found: Set `event: "REQUEST_CHANGES"`
-   - If clean: Set `event: "APPROVE"`
-   - Include a summary body with:
-     - Total violations found (or "All compliance checks passed")
-     - Categories of issues (e.g., "3 missing tags, 2 naming violations")
-     - Overall assessment
+#### 4A: Build a violation map
 
-**Subsequent Reviews (PR synchronized with new commits):**
+After analyzing the code (Step 3), build a list of **current violations** — each with: file path, line number, standard/rule violated, and description.
 
-1) **Fetch existing review comments** created by this workflow (using the `gh-aw-workflow-id` marker)
-2) **Re-analyze current PR state** against standards
-3) **For each prior violation comment:**
-   - **If still violated**: Use `reply-to-pull-request-review-comment` with a grumpy reminder that the issue persists
-   - **If fixed**: Use `resolve-pull-request-review-thread` (reluctantly) with the thread GraphQL ID
-4) **For new violations** not previously commented: Create new review comments using `create-pull-request-review-comment`
-5) **Submit updated review** using `submit-pull-request-review`:
-   - If all violations fixed: Set `event: "APPROVE"`
-   - If violations remain: Set `event: "REQUEST_CHANGES"`
-   - Include summary body with:
-     - Progress update ("2 of 4 violations fixed", or "All issues resolved")
-     - Remaining issues (if any)
-     - Overall status
+#### 4B: Match against prior comments
+
+If you have prior violation data (from memory in Step 1, or from comment discovery in Step 2), match each prior violation to the current violation list by **file path + standard/rule referenced**. Line numbers may shift between commits so match on the rule, not the exact line.
+
+Classify each prior comment as:
+- **Still violated** — the same standard is still violated in the same file
+- **Fixed** — the prior violation no longer exists in the current code
+
+#### 4C: Act on each classification
+
+**For fixed violations** (the developer addressed your feedback):
+- Call `resolve-pull-request-review-thread` with the thread's GraphQL ID (`PRRT_...`)
+- Reluctantly acknowledge the fix was made
+
+**For still-violated issues** (the developer ignored your feedback):
+- Call `reply-to-pull-request-review-comment` with the original comment's numeric ID
+- Include a grumpy reminder: "Still not fixed. I already flagged this."
+- Do NOT create a new review comment for this — reply to the existing thread
+
+**For new violations** (not covered by any prior comment):
+- Call `create-pull-request-review-comment` with file, line, and violation details
+- Reference the specific standard violated
+- Explain what is non-compliant and provide the fix
+
+#### 4D: Submit a consolidated review
+
+**IMPORTANT**: You MUST call `submit-pull-request-review` exactly once with:
+- `event`: Set to **"REQUEST_CHANGES"** if ANY violations remain unresolved. Set to **"APPROVE"** ONLY if there are zero remaining violations. Never use "COMMENT".
+- `body`: A summary including:
+  - Total violations (new + continuing)
+  - Progress since last review if applicable (e.g., "2 of 4 violations fixed")
+  - Categories of remaining issues
+  - Overall compliance assessment
 
 Example PR comment:
 ```
@@ -190,21 +208,59 @@ Please ensure:
 
 ### Step 5: Update Memory
 
-Save your review to cache memory at `/tmp/gh-aw/cache-memory/`:
-- Write to `pr-${{ github.event.pull_request.number }}.json`:
-  ```json
-  {
-    "pr": "${{ github.event.pull_request.number }}",
-    "reviewed_at": "<ISO 8601 timestamp>",
-    "commit": "${{ github.event.pull_request.head.sha }}",
-    "violations_found": 3,
-    "violations_resolved": 1,
-    "categories": ["missing-tags", "naming"],
-    "files_reviewed": ["infra/main.tf", "src/app.cs"],
-    "review_event": "REQUEST_CHANGES"
+Save your complete review state to cache memory at `/tmp/gh-aw/cache-memory/`. This is critical — the next run depends on this data.
+
+Write to `pr-${{ github.event.pull_request.number }}.json`:
+```json
+{
+  "pr":" ${{ github.event.pull_request.number }}",
+  "reviewed_at": "<ISO 8601 timestamp>",
+  "commit": "${{ github.event.pull_request.head.sha }}",
+  "review_number": 2,
+  "review_event": "REQUEST_CHANGES",
+  "violations": [
+    {
+      "file": "aspire-demo/AspireApp.AppHost/Program.cs",
+      "line": 25,
+      "standard": "Section 2: Encryption at Rest and in Transit",
+      "rule": "Enforce TLS for all inbound and outbound connections",
+      "status": "open",
+      "comment_id": 2814881742,
+      "thread_id": "PRRT_kwDORRf7zM5u9XTM",
+      "first_flagged_commit": "abc1234",
+      "first_flagged_at": "2026-02-17T04:08:09Z"
+    },
+    {
+      "file": "aspire-demo/AspireApp.AppHost/Program.cs",
+      "line": 15,
+      "standard": "Section 1: Private Networking",
+      "rule": "Public access should be disabled by default",
+      "status": "resolved",
+      "comment_id": 2814881738,
+      "thread_id": "PRRT_kwDORRf7zM5u9XTJ",
+      "first_flagged_commit": "abc1234",
+      "first_flagged_at": "2026-02-17T04:08:09Z",
+      "resolved_at": "2026-02-17T05:15:00Z"
+    }
+  ],
+  "summary": {
+    "total_found": 4,
+    "total_open": 2,
+    "total_resolved": 2,
+    "categories": ["encryption", "networking", "logging"]
   }
-  ```
-- Append to `reviews.json` (array of past reviews) to track recurring patterns across PRs
+}
+```
+
+**Key fields:**
+- `violations[]` — Every violation ever found on this PR, with its current `status` (`open` or `resolved`), the `comment_id` (for replies), and `thread_id` (for resolving)
+- `review_number` — Increment on each run so you know how many times you've reviewed
+- `summary` — Quick counts for the review body
+
+Also append a one-line entry to `reviews.json` (array) for cross-PR pattern tracking:
+```json
+{"pr": 14, "at": "2026-02-17T05:15:00Z", "open": 2, "resolved": 2, "categories": ["encryption", "logging"]}
+```
 
 ## Guidelines
 
@@ -251,4 +307,3 @@ The safe output system will automatically create these as pull request review co
 - **Be complete** - Check all changed files and all applicable standards rules
 
 Now get to work. This code isn't going to review itself. 🔥
-

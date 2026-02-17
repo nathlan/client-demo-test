@@ -194,7 +194,7 @@ Save your review to cache memory at `/tmp/gh-aw/cache-memory/`:
 - Write to `pr-${{ github.event.pull_request.number }}.json`:
   ```json
   {
-    "pr": ${{ github.event.pull_request.number }},
+    "pr": "${{ github.event.pull_request.number }}",
     "reviewed_at": "<ISO 8601 timestamp>",
     "commit": "${{ github.event.pull_request.head.sha }}",
     "violations_found": 3,

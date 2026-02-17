@@ -67,9 +67,10 @@ This workflow synchronizes the contents of the `.github/` directory in this repo
 - The issue title must start with `[shared-assets-sync]`.
 - The issue body must include:
   - teps for Copilot to perform the update:
-    - Provide copilot a list of new files to add locally from the `nathlan/shared-assets` repository. 
-      - If you instruct copilot to retrieve the  newfile, make sure it removes the preamble before the code starts. For example, on the first line, the code used to be just `#`, but after copilot processed the file it looked like this: `successfully downloaded text file (SHA: ef9bd9a087ef88a25981e3a00bb335ca5af6ba07)#`
-    - For edits to existing files, provide per-line instructions on the files that needs to be updated- be specific and don't leave anything to the copilot cloud coding agent to determine itself.  
+    - Provide copilot a list of new files to add/replace locally from the `nathlan/shared-assets` repository. 
+      - If you instruct copilot to retrieve the new file, make sure it removes the preamble before the code starts. For example, on the first line, the code used to be just `#`, but after copilot processed the file it looked like this: `successfully downloaded text file (SHA: ef9bd9a087ef88a25981e3a00bb335ca5af6ba07)#`
+      - You should only instruct copilot to replace an entire file if the local file has no unique content that is not present in the source file. 
+      - If there is unique content in the local file, you should provide line by line instructions to copilot on how to update the file instead of replacing the entire file. Be specific and don't leave anything to the copilot cloud coding agent to determine itself.  
   - Explicit instructions to the copilot agent, where:
     - The PR title must start with `[shared-assets-sync] `
     - The PR must have the same labels as the issue i.e. `[agentic-workflow, shared-assets-sync, platform-engineering]`

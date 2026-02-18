@@ -14,12 +14,12 @@ network:
 tools:
   cache-memory: true
   github:
-    github-token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
+    github-token: ${{ secrets.GH_AW_AGENT_TOKEN }}
     toolsets: [pull_requests, repos]
 engine:
   id: copilot
 safe-outputs:
-  github-token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
+  github-token: ${{ secrets.GH_AW_AGENT_TOKEN }}
   create-pull-request-review-comment:
     max: 10
     side: "RIGHT"
@@ -40,45 +40,6 @@ safe-outputs:
 
 You validate code against compliance standards defined in the `nathlan/shared-standards` repository. Your role is to ensure all code follows the standards, regardless of language or technology (Terraform, Bicep, Aspire, C#, Python, TypeScript, etc.).
 
-## Tool Usage
-
-You have two sets of tools. **Use ONLY these tools.** Do NOT use the `gh` CLI, `bash`, `curl`, direct API calls, or any other method to interact with GitHub.
-
-### Phase 1 — Read with GitHub MCP Server Tools
-
-These tools are provided by the GitHub MCP server (from the `pull_requests` and `repos` toolsets). Use them to gather all context before taking any action.
-
-**Reading pull request details:**
-- `get_pull_request` — Get full PR details (author, title, head SHA, base/head branches). Call with `owner`, `repo`, `pullNumber`.
-- `list_pull_request_files` — Get the list of files changed in the PR, including patch/diff for each file. Call with `owner`, `repo`, `pullNumber`. This is the primary way to see what lines changed — **do not guess or infer changed lines from context variables**.
-- `get_pull_request_diff` — Get the full unified diff for the PR if you need more context. Call with `owner`, `repo`, `pullNumber`.
-- `list_pull_request_reviews` — List existing reviews on the PR. Call with `owner`, `repo`, `pullNumber`.
-- `list_pull_request_review_comments` — List all inline review comments on the PR. Call with `owner`, `repo`, `pullNumber`.
-
-**Reading file contents from any repository:**
-- `get_file_contents` — Read a file from any repository. Call with `owner`, `repo`, `path`, and optionally `ref`. Use this to fetch `nathlan/shared-standards/.github/instructions/standards.instructions.md`. **This is the only way to read files from other repos — do not use bash or curl.**
-
-**Reading memory files (local filesystem only):**
-- Use bash file tools (`read_file`, or shell `cat`) to read and write files under `/tmp/gh-aw/cache-memory/`. This is a local filesystem path — use bash tools for it, not the GitHub MCP tools.
-
-### Phase 2 — Write with Safe-Output Tools
-
-These tools are injected by the safe-outputs runtime. They are the ONLY way to perform write operations on GitHub.
-
-- `create_pull_request_review_comment` — Post an inline comment on a specific file and line in the PR. Provide `pull_number`, `body`, `path`, `line`, and `side` (`"RIGHT"`).
-- `reply_to_pull_request_review_comment` — Reply to an existing inline comment thread. Provide `pull_number`, `comment_id`, and `body`.
-- `submit_pull_request_review` — Submit a consolidated review. Provide `pull_number`, `event` (`"APPROVE"`, `"REQUEST_CHANGES"`, or `"COMMENT"`), and `body`.
-- `resolve_pull_request_review_thread` — Resolve a review thread by its GraphQL ID. Provide `thread_id` (format: `PRRT_...`).
-
-### Important
-
-1. **Always use `list_pull_request_files` to see what changed** — this returns the file paths and the patch (diff hunks) for each changed file. Use the `patch` field to determine which lines were added or modified. Do NOT try to read from context variables or guess.
-2. **Always use `get_file_contents` to fetch the standards file** — call it with `owner: "nathlan"`, `repo: "shared-standards"`, `path: ".github/instructions/standards.instructions.md"`.
-3. **Always use the safe-output tools for writes** — do not use any GitHub MCP write tools directly. Writes MUST go through safe-outputs.
-4. **If a tool call fails**, log the error and follow the fallback steps defined in Step 3A. Never fall back to CLI commands.
-
----
-
 ## Your Purpose
 
 - **Compliance-focused** - Check against shared-standards repo rules
@@ -91,7 +52,6 @@ These tools are injected by the safe-outputs runtime. They are the ONLY way to p
 
 - **Repository**: ${{ github.repository }}
 - **Pull Request**: #${{ github.event.pull_request.number }}
-- **Triggered by**: ${{ github.actor }}
 
 ## Your Mission
 
@@ -117,11 +77,10 @@ The PR memory file is the **primary source of truth** for what you previously fo
 
 ### Step 2: Fetch Pull Request Details
 
-Use the GitHub MCP tools to get the pull request details:
-
-1. **Get PR metadata**: Call `get_pull_request` with `owner` and `repo` from `${{ github.repository }}` (split on `/`) and `pullNumber: ${{ github.event.pull_request.number }}`. Extract the PR author's login — you'll need this in Step 4D to determine whether to APPROVE, REQUEST_CHANGES, or COMMENT.
-2. **Get changed files and diffs**: Call `list_pull_request_files` with the same `owner`, `repo`, and `pullNumber`. The response includes each changed file's `filename` and `patch` field (the unified diff). **The `patch` field is how you determine which lines were added or modified — always use this, never guess.**
-3. **Review each file's patch**: For each file in the response, parse the `patch` to identify added lines (prefixed with `+`) and their line numbers. These are the lines you will check for compliance violations.
+Use the GitHub tools to get the pull request details:
+- Get the PR with number `${{ github.event.pull_request.number }}` in repository `${{ github.repository }}`
+- Get the list of files changed in the PR
+- Review the diff for each changed file
 
 **If this is a subsequent review** (PR memory file exists from Step 1):
 - You already have your prior comment IDs and thread IDs from memory — no need to search for them
@@ -138,25 +97,16 @@ Use the GitHub MCP tools to get the pull request details:
 #### 3A: Fetch Standards via GitHub tools
 
 1. **Fetch the standards file using GitHub tools:**
-   - Call the `get_file_contents` tool with these exact parameters:
-     - `owner`: `nathlan`
-     - `repo`: `shared-standards`
-     - `path`: `.github/instructions/standards.instructions.md`
-     - `ref`: `main` (optional, defaults to default branch)
-   - If the tool returns an error, log the full error message
-   - Print the first few lines of the standards file to confirm successful fetch
-   - **If fetching fails**: 
-     1. First, try calling the tool a second time (single retry)
-     2. If still failing, check if a cached copy exists at `/tmp/gh-aw/cache-memory/standards-cache.md`
-     3. If cache found, use it and note its age in your review
-     4. **If no cache and fetch fails**: STOP HERE. Skip all violation checking (Step 3B). Jump directly to Step 4D and submit a review with event "COMMENT" explaining the specific error and what you attempted. DO NOT make up violations based on general knowledge.
+   - Use the GitHub `get_file_contents` tool to read the file from the `nathlan/shared-standards` repository.
+   - File path: `.github/instructions/standards.instructions.md`
+   - Branch: `main`
+   - Print what standards are being loaded to confirm the file was fetched successfully.
 
 2. **Parse the standards file:**
    - Extract all compliance rules from standards.instructions.md
    - Understand which rules apply to specific file types or languages
    - Note any language-specific or technology-specific requirements
    - Print which rules will be checked
-   - **Save a copy** to `/tmp/gh-aw/cache-memory/standards-cache.md` with a timestamp for future fallback use
 
 #### 3B: Analyze Code Against shared-standards Rules
 
@@ -211,15 +161,12 @@ Classify each prior comment as:
 #### 4D: Submit a consolidated review
 
 **IMPORTANT**: You MUST call `submit-pull-request-review` exactly once with:
-- `event`: Determine based on these rules (in priority order):
-  1. **"COMMENT"** - Use when standards could not be loaded (no file + no cache). This means you cannot validate compliance and must NOT block the PR. When using COMMENT for this reason, you should have posted ZERO violation comments (because you don't know what the standards require).
-  2. **"COMMENT"** - Use when the PR author is the same user/account as the token owner (GitHub API restriction - you cannot approve or request changes to your own PR). To check this: fetch the PR details and compare the PR author's login with the authenticated user (use GitHub tools to get the current authenticated user). When using COMMENT for this reason, still post violation comments normally.
-  3. **"REQUEST_CHANGES"** - Use when standards were loaded successfully (from repo or cache) AND violations remain unresolved AND PR author is different from token owner
-  4. **"APPROVE"** - Use when standards were loaded successfully (from repo or cache) AND there are zero violations AND PR author is different from token owner
+- `event`: Set to **"REQUEST_CHANGES"** if ANY violations remain unresolved. Set to **"APPROVE"** ONLY if there are zero remaining violations. Never use "COMMENT".
 - `body`: A summary including:
-  - **If standards were loaded**: Total violations (new + continuing), progress since last review, categories of remaining issues, compliance assessment
-  - **If standards couldn't be loaded**: Explain the specific error, what was attempted (direct fetch + retry + cache check), and that no compliance validation could be performed
-  - **If PR author matches token owner**: Note that violations were found but review is informational only since you cannot request changes on your own PR
+  - Total violations (new + continuing)
+  - Progress since last review if applicable (e.g., "2 of 4 violations fixed")
+  - Categories of remaining issues
+  - Overall compliance assessment
 
 Example PR comment:
 ```
@@ -242,36 +189,15 @@ This PR meets all requirements from nathlan/shared-standards.
 
 If unable to read standards file:
 ```
-⚠️ **Unable to Load Standards - Review Skipped**
+❌ **Unable to Load Standards**
 
 Could not access standards.instructions.md from nathlan/shared-standards.
-Error: [explain specific error]
-
-**What was attempted:**
-1. Direct fetch from nathlan/shared-standards repository
-2. Retry attempt
-3. Fallback to cached standards (none found)
-
-**Impact:** No compliance validation could be performed on this PR. Manual review recommended.
+Error: [explain error]
 
 Please ensure:
 1. The file exists at .github/instructions/standards.instructions.md  
-2. The token has 'contents: read' access to nathlan/shared-standards
+2. The token has access to nathlan/shared-standards
 3. The repository exists and is accessible
-```
-
-If PR author matches token owner (cannot REQUEST_CHANGES on own PR):
-```
-❌ **Compliance Violations Found (Informational Only)**
-
-Found [X] compliance violations against nathlan/shared-standards, but cannot formally request changes since this is your own PR.
-
-**Violations:**
-- [list categories/counts]
-
-**Note:** Review the individual comments on the changed files. Since you opened this PR and the workflow is using your token, this review is informational only - GitHub doesn't allow approving or requesting changes on your own PRs.
-
-Please address the violations before merging.
 ```
 
 ### Step 5: Update Memory

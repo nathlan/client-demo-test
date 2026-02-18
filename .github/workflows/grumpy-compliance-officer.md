@@ -12,15 +12,10 @@ network:
     - defaults
     - github
 tools:
-  cache-memory:
-    - id: default-
-      key: memory-default
+  cache-memory: true
   github:
-    mode: local
     github-token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
     toolsets: [pull_requests, repos]
-engine:
-  id: copilot
 safe-outputs:
   github-token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
   create-pull-request-review-comment:

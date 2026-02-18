@@ -17,6 +17,7 @@ tools:
       key: memory-default
   github:
     mode: remote
+    github-token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
     toolsets: [pull_requests, repos]
 engine:
   id: copilot

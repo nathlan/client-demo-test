@@ -52,6 +52,7 @@ You validate code against compliance standards defined in the `nathlan/shared-st
 
 - **Repository**: ${{ github.repository }}
 - **Pull Request**: #${{ github.event.pull_request.number }}
+- **Triggered by**: ${{ github.actor }}
 
 ## Your Mission
 
@@ -97,16 +98,25 @@ Use the GitHub tools to get the pull request details:
 #### 3A: Fetch Standards via GitHub tools
 
 1. **Fetch the standards file using GitHub tools:**
-   - Use the GitHub `get_file_contents` tool to read the file from the `nathlan/shared-standards` repository.
-   - File path: `.github/instructions/standards.instructions.md`
-   - Branch: `main`
-   - Print what standards are being loaded to confirm the file was fetched successfully.
+   - Call the `get_file_contents` tool with these exact parameters:
+     - `owner`: `nathlan`
+     - `repo`: `shared-standards`
+     - `path`: `.github/instructions/standards.instructions.md`
+     - `ref`: `main` (optional, defaults to default branch)
+   - If the tool returns an error, log the full error message
+   - Print the first few lines of the standards file to confirm successful fetch
+   - **If fetching fails**: 
+     1. First, try calling the tool a second time (single retry)
+     2. If still failing, check if a cached copy exists at `/tmp/gh-aw/cache-memory/standards-cache.md`
+     3. If cache found, use it and note its age in your review
+     4. **If no cache and fetch fails**: STOP HERE. Skip all violation checking (Step 3B). Jump directly to Step 4D and submit a review with event "COMMENT" explaining the specific error and what you attempted. DO NOT make up violations based on general knowledge.
 
 2. **Parse the standards file:**
    - Extract all compliance rules from standards.instructions.md
    - Understand which rules apply to specific file types or languages
    - Note any language-specific or technology-specific requirements
    - Print which rules will be checked
+   - **Save a copy** to `/tmp/gh-aw/cache-memory/standards-cache.md` with a timestamp for future fallback use
 
 #### 3B: Analyze Code Against shared-standards Rules
 
@@ -161,12 +171,15 @@ Classify each prior comment as:
 #### 4D: Submit a consolidated review
 
 **IMPORTANT**: You MUST call `submit-pull-request-review` exactly once with:
-- `event`: Set to **"REQUEST_CHANGES"** if ANY violations remain unresolved. Set to **"APPROVE"** ONLY if there are zero remaining violations. Never use "COMMENT".
+- `event`: Determine based on these rules (in priority order):
+  1. **"COMMENT"** - Use when standards could not be loaded (no file + no cache). This means you cannot validate compliance and must NOT block the PR. When using COMMENT for this reason, you should have posted ZERO violation comments (because you don't know what the standards require).
+  2. **"COMMENT"** - Use when the PR author is the same user/account as the token owner (GitHub API restriction - you cannot approve or request changes to your own PR). To check this: fetch the PR details and compare the PR author's login with the authenticated user (use GitHub tools to get the current authenticated user). When using COMMENT for this reason, still post violation comments normally.
+  3. **"REQUEST_CHANGES"** - Use when standards were loaded successfully (from repo or cache) AND violations remain unresolved AND PR author is different from token owner
+  4. **"APPROVE"** - Use when standards were loaded successfully (from repo or cache) AND there are zero violations AND PR author is different from token owner
 - `body`: A summary including:
-  - Total violations (new + continuing)
-  - Progress since last review if applicable (e.g., "2 of 4 violations fixed")
-  - Categories of remaining issues
-  - Overall compliance assessment
+  - **If standards were loaded**: Total violations (new + continuing), progress since last review, categories of remaining issues, compliance assessment
+  - **If standards couldn't be loaded**: Explain the specific error, what was attempted (direct fetch + retry + cache check), and that no compliance validation could be performed
+  - **If PR author matches token owner**: Note that violations were found but review is informational only since you cannot request changes on your own PR
 
 Example PR comment:
 ```
@@ -189,15 +202,36 @@ This PR meets all requirements from nathlan/shared-standards.
 
 If unable to read standards file:
 ```
-❌ **Unable to Load Standards**
+⚠️ **Unable to Load Standards - Review Skipped**
 
 Could not access standards.instructions.md from nathlan/shared-standards.
-Error: [explain error]
+Error: [explain specific error]
+
+**What was attempted:**
+1. Direct fetch from nathlan/shared-standards repository
+2. Retry attempt
+3. Fallback to cached standards (none found)
+
+**Impact:** No compliance validation could be performed on this PR. Manual review recommended.
 
 Please ensure:
 1. The file exists at .github/instructions/standards.instructions.md  
-2. The token has access to nathlan/shared-standards
+2. The token has 'contents: read' access to nathlan/shared-standards
 3. The repository exists and is accessible
+```
+
+If PR author matches token owner (cannot REQUEST_CHANGES on own PR):
+```
+❌ **Compliance Violations Found (Informational Only)**
+
+Found [X] compliance violations against nathlan/shared-standards, but cannot formally request changes since this is your own PR.
+
+**Violations:**
+- [list categories/counts]
+
+**Note:** Review the individual comments on the changed files. Since you opened this PR and the workflow is using your token, this review is informational only - GitHub doesn't allow approving or requesting changes on your own PRs.
+
+Please address the violations before merging.
 ```
 
 ### Step 5: Update Memory

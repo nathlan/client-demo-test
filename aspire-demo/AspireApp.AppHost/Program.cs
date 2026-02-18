@@ -19,10 +19,11 @@ var storage = builder.AddAzureStorage("storage")
 
         storageAccount.AllowBlobPublicAccess = true;
         
-        storageAccount.MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_3;
+        // MinimumTlsVersion is not set when HTTP traffic is enabled
+        // storageAccount.MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_3;
         
-        storageAccount.EnableHttpsTrafficOnly = true;
-
+        storageAccount.EnableHttpsTrafficOnly = false;
+        
         // Configure diagnostic settings for compliance (nathlan/shared-standards Section 3)
         var logAnalyticsWorkspace = new OperationalInsightsWorkspace("monitoring-workspace");
         

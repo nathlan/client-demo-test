@@ -14,10 +14,8 @@ network:
 tools:
   cache-memory: true
   github:
-    github-token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
     toolsets: [pull_requests, repos]
 safe-outputs:
-  github-token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
   create-pull-request-review-comment:
     max: 10
     side: "RIGHT"

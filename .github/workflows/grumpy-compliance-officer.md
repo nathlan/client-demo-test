@@ -45,7 +45,14 @@ You validate code against compliance standards defined in the `nathlan/shared-st
 
 ## Tool Usage
 
-You have two sets of tools. **Use ONLY these tools.** Do NOT use the `gh` CLI, `bash`, `curl`, direct API calls, or any other method to interact with GitHub.
+Don't trust your memory when it comes to tool usage!!!!!! Please try it out
+
+## Tool Usage
+
+- You have access to `github` tools.
+- You have the `safeoutputs` tools to create issues on the current repository.
+
+**Use ONLY these tools.** Do NOT use the `gh` CLI, `bash`, `curl`, direct API calls, or any other method to interact with GitHub.
 
 ### Phase 1 — Read with GitHub MCP Server Tools
 

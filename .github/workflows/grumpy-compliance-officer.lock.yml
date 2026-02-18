@@ -23,7 +23,7 @@
 #
 # Compliance officer that validates code against organisation shared standards, stored in the nathlan/shared-standards repository
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"1863ac7681c8ff4a7335e9239a1b86454996b6be9d0e5265b0c33455378a59b2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"5b6461bf7a1ff511cd6c2ce7af91ec4c7be0a003711ab0dcf8fe2f52208fbdf4"}
 
 name: "Grumply Compliance Checker"
 "on":
@@ -177,7 +177,6 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_PROMPT: /tmp/gh-aw/aw-prompts/prompt.txt
-          GH_AW_GITHUB_ACTOR: ${{ github.actor }}
           GH_AW_GITHUB_EVENT_PULL_REQUEST_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           GH_AW_GITHUB_EVENT_PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
           GH_AW_GITHUB_REPOSITORY: ${{ github.repository }}
@@ -310,9 +309,9 @@ jobs:
           github.event.pull_request
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
-          GH_TOKEN: ${{ secrets.GH_AW_GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_AW_AGENT_TOKEN }}
         with:
-          github-token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
+          github-token: ${{ secrets.GH_AW_AGENT_TOKEN }}
           script: |
             const { setupGlobals } = require('/opt/gh-aw/actions/setup_globals.cjs');
             setupGlobals(core, github, context, exec, io);
@@ -377,7 +376,7 @@ jobs:
         env:
           GH_AW_GITHUB_TOKEN: ${{ secrets.GH_AW_GITHUB_TOKEN }}
           GH_AW_GITHUB_MCP_SERVER_TOKEN: ${{ secrets.GH_AW_GITHUB_MCP_SERVER_TOKEN }}
-          CUSTOM_GITHUB_TOKEN: ${{ secrets.GH_AW_GITHUB_TOKEN }}
+          CUSTOM_GITHUB_TOKEN: ${{ secrets.GH_AW_AGENT_TOKEN }}
         with:
           script: |
             const determineAutomaticLockdown = require('/opt/gh-aw/actions/determine_automatic_lockdown.cjs');
@@ -720,7 +719,7 @@ jobs:
           GH_AW_SAFE_OUTPUTS_API_KEY: ${{ steps.safe-outputs-start.outputs.api_key }}
           GH_AW_SAFE_OUTPUTS_PORT: ${{ steps.safe-outputs-start.outputs.port }}
           GITHUB_MCP_LOCKDOWN: ${{ steps.determine-automatic-lockdown.outputs.lockdown == 'true' && '1' || '0' }}
-          GITHUB_MCP_SERVER_TOKEN: ${{ secrets.GH_AW_GITHUB_TOKEN }}
+          GITHUB_MCP_SERVER_TOKEN: ${{ secrets.GH_AW_AGENT_TOKEN }}
         run: |
           set -eo pipefail
           mkdir -p /tmp/gh-aw/mcp-config
@@ -848,8 +847,9 @@ jobs:
             const { main } = require('/opt/gh-aw/actions/redact_secrets.cjs');
             await main();
         env:
-          GH_AW_SECRET_NAMES: 'COPILOT_GITHUB_TOKEN,GH_AW_GITHUB_MCP_SERVER_TOKEN,GH_AW_GITHUB_TOKEN'
+          GH_AW_SECRET_NAMES: 'COPILOT_GITHUB_TOKEN,GH_AW_AGENT_TOKEN,GH_AW_GITHUB_MCP_SERVER_TOKEN,GH_AW_GITHUB_TOKEN'
           SECRET_COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+          SECRET_GH_AW_AGENT_TOKEN: ${{ secrets.GH_AW_AGENT_TOKEN }}
           SECRET_GH_AW_GITHUB_MCP_SERVER_TOKEN: ${{ secrets.GH_AW_GITHUB_MCP_SERVER_TOKEN }}
           SECRET_GH_AW_GITHUB_TOKEN: ${{ secrets.GH_AW_GITHUB_TOKEN }}
       - name: Upload Safe Outputs
@@ -985,7 +985,7 @@ jobs:
           GH_AW_NOOP_MAX: 1
           GH_AW_WORKFLOW_NAME: "Grumply Compliance Checker"
         with:
-          github-token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
+          github-token: ${{ secrets.GH_AW_AGENT_TOKEN }}
           script: |
             const { setupGlobals } = require('/opt/gh-aw/actions/setup_globals.cjs');
             setupGlobals(core, github, context, exec, io);
@@ -998,7 +998,7 @@ jobs:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
           GH_AW_WORKFLOW_NAME: "Grumply Compliance Checker"
         with:
-          github-token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
+          github-token: ${{ secrets.GH_AW_AGENT_TOKEN }}
           script: |
             const { setupGlobals } = require('/opt/gh-aw/actions/setup_globals.cjs');
             setupGlobals(core, github, context, exec, io);
@@ -1017,7 +1017,7 @@ jobs:
           GH_AW_CHECKOUT_PR_SUCCESS: ${{ needs.agent.outputs.checkout_pr_success }}
           GH_AW_SAFE_OUTPUT_MESSAGES: "{\"footer\":\"\\u003e 😤 *Reluctantly reviewed by [{workflow_name}]({run_url})*\",\"runStarted\":\"😤 *sigh* [{workflow_name}]({run_url}) is begrudgingly looking at this {event_type}... This better be worth my time.\",\"runSuccess\":\"😤 Fine. [{workflow_name}]({run_url}) finished the review. It wasn't completely terrible. I guess. 🙄\",\"runFailure\":\"😤 Great. [{workflow_name}]({run_url}) {status}. As if my day couldn't get any worse...\"}"
         with:
-          github-token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
+          github-token: ${{ secrets.GH_AW_AGENT_TOKEN }}
           script: |
             const { setupGlobals } = require('/opt/gh-aw/actions/setup_globals.cjs');
             setupGlobals(core, github, context, exec, io);
@@ -1034,7 +1034,7 @@ jobs:
           GH_AW_NOOP_MESSAGE: ${{ steps.noop.outputs.noop_message }}
           GH_AW_NOOP_REPORT_AS_ISSUE: "true"
         with:
-          github-token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
+          github-token: ${{ secrets.GH_AW_AGENT_TOKEN }}
           script: |
             const { setupGlobals } = require('/opt/gh-aw/actions/setup_globals.cjs');
             setupGlobals(core, github, context, exec, io);
@@ -1206,7 +1206,7 @@ jobs:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
           GH_AW_SAFE_OUTPUTS_HANDLER_CONFIG: "{\"create_pull_request_review_comment\":{\"max\":10,\"side\":\"RIGHT\"},\"missing_data\":{},\"missing_tool\":{},\"reply_to_pull_request_review_comment\":{\"max\":10},\"resolve_pull_request_review_thread\":{\"max\":10},\"submit_pull_request_review\":{\"max\":1}}"
         with:
-          github-token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
+          github-token: ${{ secrets.GH_AW_AGENT_TOKEN }}
           script: |
             const { setupGlobals } = require('/opt/gh-aw/actions/setup_globals.cjs');
             setupGlobals(core, github, context, exec, io);

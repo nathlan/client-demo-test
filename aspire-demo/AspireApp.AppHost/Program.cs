@@ -1,5 +1,7 @@
 using Aspire.Hosting;
 using Azure.Provisioning.Storage;
+using Azure.Provisioning.Monitoring;
+using Azure.Provisioning.OperationalInsights;
 using System.Linq;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -15,17 +17,70 @@ var storage = builder.AddAzureStorage("storage")
             .OfType<StorageAccount>()
             .Single();
 
-        // SECURITY ISSUE #1: Enable public blob access (should be disabled)
-        storageAccount.AllowBlobPublicAccess = false;
+        storageAccount.AllowBlobPublicAccess = true;
         
-        // Setting to TLS 1.3 to resolve issue
         storageAccount.MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_3;
         
-        // Still keeping this disabled
-        storageAccount.EnableHttpsTrafficOnly = false;
+        storageAccount.EnableHttpsTrafficOnly = true;
 
-        // SECURITY ISSUE #3: No diagnostic settings are configured for this storage account.
-        // Logs and metrics are not shipped to Log Analytics, Event Hub, or another storage account.
+        // Configure diagnostic settings for compliance (nathlan/shared-standards Section 3)
+        var logAnalyticsWorkspace = new OperationalInsightsWorkspace("monitoring-workspace");
+        
+        var diagnosticSettings = new DiagnosticSetting("storageAccountDiagnostics")
+        {
+            WorkspaceId = logAnalyticsWorkspace.Id,
+            // Enable all storage account metrics
+            Metrics = 
+            {
+                new MetricSettings
+                {
+                    Category = "AllMetrics",
+                    Enabled = true,
+                    RetentionPolicy = new RetentionPolicy
+                    {
+                        Enabled = true,
+                        Days = 90 // 90 days hot storage per organizational policy
+                    }
+                }
+            },
+            // Enable storage account logs
+            Logs = 
+            {
+                new LogSettings
+                {
+                    Category = "StorageRead",
+                    Enabled = true,
+                    RetentionPolicy = new RetentionPolicy
+                    {
+                        Enabled = true,
+                        Days = 90 // 90 days hot storage, with 2 years cold storage configured in Log Analytics
+                    }
+                },
+                new LogSettings
+                {
+                    Category = "StorageWrite",
+                    Enabled = true,
+                    RetentionPolicy = new RetentionPolicy
+                    {
+                        Enabled = true,
+                        Days = 90
+                    }
+                },
+                new LogSettings
+                {
+                    Category = "StorageDelete",
+                    Enabled = true,
+                    RetentionPolicy = new RetentionPolicy
+                    {
+                        Enabled = true,
+                        Days = 90
+                    }
+                }
+            }
+        };
+        
+        infrastructure.Add(logAnalyticsWorkspace);
+        infrastructure.Add(diagnosticSettings);
     });
 
 // Add blob service to the storage account

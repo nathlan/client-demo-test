@@ -14,16 +14,10 @@ network:
 tools:
   cache-memory: true
   github:
+    github-token: ${{ secrets.GH_AW_AGENT_TOKEN }}
     toolsets: [pull_requests, repos]
 engine:
   id: copilot
-  steps:
-    - name: Checkout source repo to sync from
-      uses: actions/checkout@v6
-      with:
-        repository: nathlan/shared-standards
-        token: ${{ secrets.GH_AW_AGENT_TOKEN }}
-        path: shared-standards
 safe-outputs:
   github-token: ${{ secrets.GH_AW_AGENT_TOKEN }}
   create-pull-request-review-comment:
@@ -90,7 +84,7 @@ Use the GitHub tools to get the pull request details:
 
 **If this is a subsequent review** (PR memory file exists from Step 1):
 - You already have your prior comment IDs and thread IDs from memory — no need to search for them
-- Verify the comment/thread IDs are still valid by spot-checking one via the GitHub API
+- Verify the comment/thread IDs are still valid by spot-checking one via the GitHub tools
 
 **If this is the first review** (no PR memory file):
 - Check if there are any existing review threads with the `<!-- gh-aw-workflow-id: grumpy-compliance-officer -->` marker (in case memory was lost but comments exist from a prior cache expiry)
@@ -100,13 +94,13 @@ Use the GitHub tools to get the pull request details:
 
 **FOCUS: All compliance checking is based on `nathlan/shared-standards` repository.**
 
-#### 3A: Read Standards from Local Path
+#### 3A: Fetch Standards via GitHub tools
 
-1. **Read the standards file from the locally checked out directory:**
-   - The `nathlan/shared-standards` repository has already been checked out to the `shared-standards` directory in the current workspace.
-   - File location: `./shared-standards/.github/instructions/standards.instructions.md`
-   - Read the file directly from the filesystem.
-   - Print what standards are being loaded to confirm the file exists and is readable.
+1. **Fetch the standards file using GitHub tools:**
+   - Use the GitHub `get_file_contents` tool to read the file from the `nathlan/shared-standards` repository.
+   - File path: `.github/instructions/standards.instructions.md`
+   - Branch: `main`
+   - Print what standards are being loaded to confirm the file was fetched successfully.
 
 2. **Parse the standards file:**
    - Extract all compliance rules from standards.instructions.md
@@ -213,7 +207,7 @@ Save your complete review state to cache memory at `/tmp/gh-aw/cache-memory/`. T
 Write to `pr-${{ github.event.pull_request.number }}.json`:
 ```json
 {
-  "pr":" ${{ github.event.pull_request.number }}",
+  "pr": "${{ github.event.pull_request.number }}",
   "reviewed_at": "<ISO 8601 timestamp>",
   "commit": "${{ github.event.pull_request.head.sha }}",
   "review_number": 2,

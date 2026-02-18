@@ -13,10 +13,10 @@ network:
     - github
 tools:
   cache-memory:
-    - id: default
+    - id: default-
       key: memory-default
   github:
-    mode: remote
+    mode: local
     github-token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
     toolsets: [pull_requests, repos]
 engine:

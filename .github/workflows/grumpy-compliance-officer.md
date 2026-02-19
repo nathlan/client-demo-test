@@ -13,7 +13,6 @@ network:
     - github
 tools:
   github:
-    mode: remote
     github-token: ${{ secrets.GH_AW_GITHUB_MCP_SERVER_TOKEN }}
     toolsets: [pull_requests, repos]
   cache-memory: true

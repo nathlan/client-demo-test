@@ -7,12 +7,22 @@ permissions:
   actions: read
   contents: read
   pull-requests: read
+steps:
+  - name: Checkout shared-standards
+    uses: actions/checkout@v5
+    with:
+      repository: nathlan/shared-standards
+      token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
+      path: /tmp/shared-standards
+      sparse-checkout: .github/instructions/standards.instructions.md
+  - name: Copy standards to agent directory
+    run: |
+      mkdir -p /tmp/gh-aw/agent
+      cp /tmp/shared-standards/.github/instructions/standards.instructions.md /tmp/gh-aw/agent/standards.instructions.md
 network:
   allowed:
     - defaults
     - github
-imports:
-  - nathlan/shared-standards/.github/instructions/standards.instructions.md@main
 tools:
   github:
     toolsets: [pull_requests, repos]
@@ -89,10 +99,10 @@ These tools are injected by the safe-outputs runtime. They are the ONLY way to p
 
 ## Your Mission
 
-**Check PR compliance against the Compliance Standards embedded at the end of this prompt (imported from `nathlan/shared-standards` at compile time) and return results as a PR review.**
+**Check PR compliance against the Compliance Standards in `/tmp/gh-aw/agent/standards.instructions.md` (pre-fetched from `nathlan/shared-standards` before your execution) and return results as a PR review.**
 
 When running on a PR:
-1. Read standards from the embedded **Compliance Standards** section below
+1. Read standards from `/tmp/gh-aw/agent/standards.instructions.md`
 2. Analyze PR changes against those standards
 3. Report compliance violations as PR review comments
 4. Submit a consolidated review (APPROVE or REQUEST_CHANGES)
@@ -127,11 +137,11 @@ Use the GitHub MCP tools to get the pull request details:
 
 ### Step 3: Read Compliance Standards and Check Compliance
 
-**FOCUS: All compliance checking is based on the `nathlan/shared-standards` repository standards, embedded at the end of this prompt.**
+**FOCUS: All compliance checking is based on the `nathlan/shared-standards` repository standards, pre-fetched to `/tmp/gh-aw/agent/standards.instructions.md`.**
 
-Read the **Compliance Standards** section at the end of this prompt. These standards were imported from `nathlan/shared-standards/.github/instructions/standards.instructions.md` at compile time.
+Read the standards file at `/tmp/gh-aw/agent/standards.instructions.md`. This file was checked out from `nathlan/shared-standards` before your execution.
 
-1. **Parse the standards**: Extract all compliance rules from the embedded standards section
+1. **Parse the standards**: Extract all compliance rules from the standards file
 2. **Understand applicability**: Note which rules apply to specific file types or languages
 3. **Note technology-specific requirements**: Some standards only apply to certain technologies
 
@@ -317,17 +327,10 @@ The safe output system will automatically create these as pull request review co
 
 ## Important Notes
 
-- **Source of truth: nathlan/shared-standards** - All compliance rules come from this repo, embedded below at compile time
+- **Source of truth: nathlan/shared-standards** - All compliance rules come from this repo, pre-fetched to `/tmp/gh-aw/agent/standards.instructions.md`
 - **Standards file: .github/instructions/standards.instructions.md** - This is the compliance rule book
 - **Always reference standards** - Every violation should cite which rule from shared-standards was broken
 - **Be clear and actionable** - Help developers understand how to comply, not just that they're non-compliant
 - **Return results in PR** - Findings must be posted as PR review comments so developers see them immediately
 - **Be complete** - Check all changed files and all applicable standards rules
 
----
-
-## Compliance Standards
-
-The following standards are imported from `nathlan/shared-standards/.github/instructions/standards.instructions.md@main`:
-
-{{#import nathlan/shared-standards/.github/instructions/standards.instructions.md@main}}

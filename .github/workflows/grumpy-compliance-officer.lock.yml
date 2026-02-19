@@ -23,14 +23,7 @@
 #
 # Compliance officer that validates code against organisation shared standards, stored in the nathlan/shared-standards repository
 #
-# Resolved workflow manifest:
-#   Imports:
-#     - nathlan/shared-standards/.github/instructions/standards.instructions.md@main
-#   Includes:
-#     - /tmp/gh-aw-include-1346895233.md
-#     - /tmp/gh-aw-include-1612753177.md
-#
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"3ecfef11d30169a781f597814de19ed0b8de84c50b71d9c8f764f11f5fc9e9c4","compiler_version":"v0.46.1"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"7368ace4e2c2da7b48225ac70d31b2b56c45856ab90ae2c0020ad88ef86c4ff2","compiler_version":"v0.46.1"}
 
 name: "Grumply Compliance Checker"
 "on":
@@ -186,9 +179,6 @@ jobs:
           </system>
           GH_AW_PROMPT_EOF
           cat << 'GH_AW_PROMPT_EOF' >> "$GH_AW_PROMPT"
-          {{#runtime-import .github/aw/imports/nathlan/shared-standards/be70e51eeb0814e0b00016a0929877099e7133de/.github_instructions_standards.instructions.md}}
-          GH_AW_PROMPT_EOF
-          cat << 'GH_AW_PROMPT_EOF' >> "$GH_AW_PROMPT"
           {{#runtime-import .github/workflows/grumpy-compliance-officer.md}}
           GH_AW_PROMPT_EOF
       - name: Interpolate variables and render templates
@@ -295,12 +285,20 @@ jobs:
         uses: github/gh-aw/actions/setup@874bdd8271bf8c21902b068fb1ca6a22d2dc4b7a # v0.46.1
         with:
           destination: /opt/gh-aw/actions
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
       - name: Create gh-aw temp directory
         run: bash /opt/gh-aw/actions/create_gh_aw_tmp_dir.sh
+      - name: Checkout shared-standards
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          path: /tmp/shared-standards
+          repository: nathlan/shared-standards
+          sparse-checkout: .github/instructions/standards.instructions.md
+          token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
+      - name: Copy standards to agent directory
+        run: |-
+          mkdir -p /tmp/gh-aw/agent
+          cp /tmp/shared-standards/.github/instructions/standards.instructions.md /tmp/gh-aw/agent/standards.instructions.md
+
       # Cache memory file share configuration from frontmatter processed below
       - name: Create cache-memory directory
         run: bash /opt/gh-aw/actions/create_cache_memory_dir.sh

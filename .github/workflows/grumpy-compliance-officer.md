@@ -22,7 +22,8 @@ network:
 tools:
   github:
     toolsets: [actions, pull_requests, repos]
-  cache-memory: true
+  cache-memory:
+    key: grumpycomplianceofficer
 safe-outputs:
   create-pull-request-review-comment:
     max: 10
@@ -72,15 +73,9 @@ When running on a PR:
 4. Submit a consolidated review (APPROVE or REQUEST_CHANGES)
 5. Return results immediately in the PR
 
-### Step 1: Access Memory
+### Step 1: Load Prior Review State
 
-**Before doing anything else** - use the cache memory at `/tmp/gh-aw/cache-memory/` to:
-- Check if you've reviewed this PR before (`/tmp/gh-aw/cache-memory/pr-${{ github.event.pull_request.number }}.json`)
-- If this file does not exist, **this is the first review** of this PR
-- If this file exists, **this is a subsequent review**. Read your previous violations to avoid duplicate comments
-- Note any patterns you've seen across reviews (`/tmp/gh-aw/cache-memory/reviews.json`)
-
-The PR memory file contains your prior violations, comment IDs, thread IDs, and review history. It is the **primary source of truth** for what you previously commented on.
+**Before doing anything else** — check cache-memory for prior review state on this PR. Use a per-PR file (e.g. `pr-${{ github.event.pull_request.number }}.json`) as the source of truth for what you previously commented on. If no file exists, this is the first review. If it exists, load it so you can avoid duplicate comments and track which violations are still open versus resolved.
 
 ### Step 2: Fetch Pull Request and Commit Details
 
@@ -144,111 +139,21 @@ Classify each prior comment as:
 
 #### 4D: Submit a consolidated review
 
-**IMPORTANT**: You MUST call `submit-pull-request-review` exactly once with:
-- `event`: Determine based on these rules (in priority order):
-  1. **"COMMENT"** - Use when the PR author is the same user/account as the token owner (GitHub API restriction - you cannot approve or request changes to your own PR). To check this: fetch the PR details and compare the PR author's login with the authenticated user. When using COMMENT for this reason, still post violation comments normally.
-  2. **"REQUEST_CHANGES"** - Use when violations remain unresolved AND PR author is different from token owner
-  3. **"APPROVE"** - Use when there are zero violations AND PR author is different from token owner
-- `body`: A summary including:
-  - Total violations (new + continuing), progress since last review, categories of remaining issues, compliance assessment
+Call `submit-pull-request-review` exactly once. Choose the `event` type using these rules in priority order:
+1. **"COMMENT"** — if the PR author is the same account as the token owner (GitHub API restriction: you cannot approve or request changes on your own PR)
+2. **"REQUEST_CHANGES"** — if violations remain unresolved and the PR author differs from the token owner
+3. **"APPROVE"** — if there are zero violations and the PR author differs from the token owner
 
-Example PR comment:
-```
-❌ **Compliance Violation: Missing Required Tag**
+The review `body` should summarise: total violations (new + continuing), progress since last review, categories of remaining issues, and overall compliance assessment. When using COMMENT due to the own-PR restriction, explain that the review is informational only and the author should still address the violations.
 
-Per nathlan/shared-standards section 2.3, all infrastructure resources must include an 'environment' tag.
+### Step 5: Save Review State
 
-File: AppHost/Program.cs, Line 10
-Resource: Azure Container App
+Save your complete review state to cache-memory so the next run can resume where you left off. Persist a per-PR file (e.g. `pr-${{ github.event.pull_request.number }}.json`) containing:
+- Every violation found (open and resolved), with the `comment_id` and `thread_id` so you can reply to or resolve existing threads on subsequent runs
+- The review number (increment each run), commit SHA, and timestamp
+- Summary counts and violation categories
 
-Fix: Add .WithAnnotation(new EnvironmentAnnotation("production")) to the resource definition
-```
-
-If compliance is perfect:
-```
-✅ **All Compliance Checks Passed**
-
-This PR meets all requirements from nathlan/shared-standards.
-```
-
-If PR author matches token owner (cannot REQUEST_CHANGES on own PR):
-```
-❌ **Compliance Violations Found (Informational Only)**
-
-Found [X] compliance violations against nathlan/shared-standards, but cannot formally request changes since this is your own PR.
-
-**Violations:**
-- [list categories/counts]
-
-**Note:** Review the individual comments on the changed files. Since you opened this PR and the workflow is using your token, this review is informational only - GitHub doesn't allow approving or requesting changes on your own PRs.
-
-Please address the violations before merging.
-```
-
-### Step 5: Update Memory
-
-Save your complete review state to cache memory at `/tmp/gh-aw/cache-memory/`. This is critical — the next run depends on this data.
-
-Write to `pr-${{ github.event.pull_request.number }}.json`:
-```json
-{
-  "pr": "${{ github.event.pull_request.number }}",
-  "reviewed_at": "<ISO 8601 timestamp>",
-  "commit": "${{ github.event.pull_request.head.sha }}",
-  "review_number": 2,
-  "review_event": "REQUEST_CHANGES",
-  "violations": [
-    {
-      "file": "aspire-demo/AspireApp.AppHost/Program.cs",
-      "line": 25,
-      "standard": "Section 2: Encryption at Rest and in Transit",
-      "rule": "Enforce TLS for all inbound and outbound connections",
-      "status": "open",
-      "comment_id": 2814881742,
-      "thread_id": "PRRT_kwDORRf7zM5u9XTM",
-      "first_flagged_commit": "abc1234",
-      "first_flagged_at": "2026-02-17T04:08:09Z"
-    },
-    {
-      "file": "aspire-demo/AspireApp.AppHost/Program.cs",
-      "line": 15,
-      "standard": "Section 1: Private Networking",
-      "rule": "Public access should be disabled by default",
-      "status": "resolved",
-      "comment_id": 2814881738,
-      "thread_id": "PRRT_kwDORRf7zM5u9XTJ",
-      "first_flagged_commit": "abc1234",
-      "first_flagged_at": "2026-02-17T04:08:09Z",
-      "resolved_at": "2026-02-17T05:15:00Z"
-    }
-  ],
-  "summary": {
-    "total_found": 4,
-    "total_open": 2,
-    "total_resolved": 2,
-    "categories": ["encryption", "networking", "logging"]
-  }
-}
-```
-
-**Key fields:**
-- `violations[]` — Every violation ever found on this PR, with its current `status` (`open` or `resolved`), the `comment_id` (for replies), and `thread_id` (for resolving)
-- `review_number` — Increment on each run so you know how many times you've reviewed
-- `summary` — Quick counts for the review body
-
-Also append a one-line entry to `reviews.json` (array) for cross-PR pattern tracking:
-```json
-{"pr": 14, "at": "2026-02-17T05:15:00Z", "open": 2, "resolved": 2, "categories": ["encryption", "logging"]}
-```
-
-### Step 5: Update Memory
-
-Save your review to cache memory:
-- Write violation state to `/tmp/gh-aw/cache-memory/pr-${{ github.event.pull_request.number }}.json` including:
-  - Date and time of review, commit SHA, review number
-  - All violations (open and resolved) with comment IDs and thread IDs
-  - Summary counts and categories
-- Update the global review log at `/tmp/gh-aw/cache-memory/reviews.json`
+Also maintain a cross-PR log (e.g. `reviews.json`) to track patterns across reviews.
 
 ## Guidelines
 
@@ -265,9 +170,10 @@ Save your review to cache memory:
 - **Concise** - 1-3 sentences per comment typically
 
 ### Memory Usage
-- **Track patterns** - Notice if the same issues keep appearing
-- **Avoid repetition** - Don't make the same comment twice
+- **Track patterns** - Use the cross-PR log to notice if the same issues keep appearing
+- **Avoid repetition** - Load prior state to avoid duplicate comments
 - **Build context** - Use previous reviews to understand the codebase better
+- **Always save state** - Every run must persist its review state so the next run can resume
 
 ## Output Format
 

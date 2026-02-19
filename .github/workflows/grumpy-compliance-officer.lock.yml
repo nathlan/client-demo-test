@@ -23,7 +23,7 @@
 #
 # Compliance officer that validates code against organisation shared standards, stored in the nathlan/shared-standards repository
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"14db6485339d3053621dd029f58cb9ada6c3a47ad5aaf9ec2b1fa032f2f4bf39","compiler_version":"v0.46.1"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"b475700f70d87967e50582b3e037260f23cd7ff3f084a2a2b68617618d671cf4","compiler_version":"v0.46.1"}
 
 name: "Grumpy Compliance Checker 😤"
 "on":
@@ -103,7 +103,6 @@ jobs:
           GH_AW_GITHUB_EVENT_COMMENT_ID: ${{ github.event.comment.id }}
           GH_AW_GITHUB_EVENT_DISCUSSION_NUMBER: ${{ github.event.discussion.number }}
           GH_AW_GITHUB_EVENT_ISSUE_NUMBER: ${{ github.event.issue.number }}
-          GH_AW_GITHUB_EVENT_PULL_REQUEST_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           GH_AW_GITHUB_EVENT_PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
           GH_AW_GITHUB_REPOSITORY: ${{ github.repository }}
           GH_AW_GITHUB_RUN_ID: ${{ github.run_id }}
@@ -186,7 +185,6 @@ jobs:
         env:
           GH_AW_PROMPT: /tmp/gh-aw/aw-prompts/prompt.txt
           GH_AW_GITHUB_ACTOR: ${{ github.actor }}
-          GH_AW_GITHUB_EVENT_PULL_REQUEST_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           GH_AW_GITHUB_EVENT_PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
           GH_AW_GITHUB_REPOSITORY: ${{ github.repository }}
         with:
@@ -206,7 +204,6 @@ jobs:
           GH_AW_GITHUB_EVENT_COMMENT_ID: ${{ github.event.comment.id }}
           GH_AW_GITHUB_EVENT_DISCUSSION_NUMBER: ${{ github.event.discussion.number }}
           GH_AW_GITHUB_EVENT_ISSUE_NUMBER: ${{ github.event.issue.number }}
-          GH_AW_GITHUB_EVENT_PULL_REQUEST_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           GH_AW_GITHUB_EVENT_PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
           GH_AW_GITHUB_REPOSITORY: ${{ github.repository }}
           GH_AW_GITHUB_RUN_ID: ${{ github.run_id }}
@@ -231,7 +228,6 @@ jobs:
                 GH_AW_GITHUB_EVENT_COMMENT_ID: process.env.GH_AW_GITHUB_EVENT_COMMENT_ID,
                 GH_AW_GITHUB_EVENT_DISCUSSION_NUMBER: process.env.GH_AW_GITHUB_EVENT_DISCUSSION_NUMBER,
                 GH_AW_GITHUB_EVENT_ISSUE_NUMBER: process.env.GH_AW_GITHUB_EVENT_ISSUE_NUMBER,
-                GH_AW_GITHUB_EVENT_PULL_REQUEST_HEAD_SHA: process.env.GH_AW_GITHUB_EVENT_PULL_REQUEST_HEAD_SHA,
                 GH_AW_GITHUB_EVENT_PULL_REQUEST_NUMBER: process.env.GH_AW_GITHUB_EVENT_PULL_REQUEST_NUMBER,
                 GH_AW_GITHUB_REPOSITORY: process.env.GH_AW_GITHUB_REPOSITORY,
                 GH_AW_GITHUB_RUN_ID: process.env.GH_AW_GITHUB_RUN_ID,
@@ -300,10 +296,10 @@ jobs:
       - name: Restore cache-memory file share data
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
-          key: memory-${{ env.GH_AW_WORKFLOW_ID_SANITIZED }}-${{ github.run_id }}
+          key: grumpycomplianceofficer-${{ github.run_id }}
           path: /tmp/gh-aw/cache-memory
           restore-keys: |
-            memory-${{ env.GH_AW_WORKFLOW_ID_SANITIZED }}-
+            grumpycomplianceofficer-
       - name: Configure Git credentials
         env:
           REPO_NAME: ${{ github.repository }}
@@ -1245,6 +1241,6 @@ jobs:
       - name: Save cache-memory to cache (default)
         uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
-          key: memory-${{ env.GH_AW_WORKFLOW_ID_SANITIZED }}-${{ github.run_id }}
+          key: grumpycomplianceofficer-${{ github.run_id }}
           path: /tmp/gh-aw/cache-memory
 

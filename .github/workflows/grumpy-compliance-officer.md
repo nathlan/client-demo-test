@@ -12,10 +12,13 @@ network:
     - defaults
     - github
 tools:
-  cache-memory: true
   github:
+    mode: remote
+    github-token: ${{ secrets.GH_AW_GITHUB_MCP_SERVER_TOKEN }}
     toolsets: [pull_requests, repos]
+  cache-memory: true
 safe-outputs:
+  github-token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
   create-pull-request-review-comment:
     max: 10
     side: "RIGHT"

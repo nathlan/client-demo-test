@@ -25,7 +25,7 @@
 #
 # gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"b475700f70d87967e50582b3e037260f23cd7ff3f084a2a2b68617618d671cf4","compiler_version":"v0.46.1"}
 
-name: "Grumpy Compliance Checker 😤"
+name: "Grumpy Compliance Checker"
 "on":
   pull_request:
     types:
@@ -39,7 +39,7 @@ concurrency:
   group: "gh-aw-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}"
   cancel-in-progress: true
 
-run-name: "Grumpy Compliance Checker 😤"
+run-name: "Grumpy Compliance Checker"
 
 jobs:
   activation:
@@ -339,7 +339,7 @@ jobs:
               version: "",
               agent_version: "0.0.411",
               cli_version: "v0.46.1",
-              workflow_name: "Grumpy Compliance Checker 😤",
+              workflow_name: "Grumpy Compliance Checker",
               experimental: false,
               supports_tools_allowlist: true,
               run_id: context.runId,
@@ -990,7 +990,7 @@ jobs:
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
           GH_AW_NOOP_MAX: 1
-          GH_AW_WORKFLOW_NAME: "Grumpy Compliance Checker 😤"
+          GH_AW_WORKFLOW_NAME: "Grumpy Compliance Checker"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -1003,7 +1003,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
-          GH_AW_WORKFLOW_NAME: "Grumpy Compliance Checker 😤"
+          GH_AW_WORKFLOW_NAME: "Grumpy Compliance Checker"
         with:
           github-token: ${{ secrets.GH_AW_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           script: |
@@ -1016,7 +1016,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
-          GH_AW_WORKFLOW_NAME: "Grumpy Compliance Checker 😤"
+          GH_AW_WORKFLOW_NAME: "Grumpy Compliance Checker"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           GH_AW_AGENT_CONCLUSION: ${{ needs.agent.result }}
           GH_AW_WORKFLOW_ID: "grumpy-compliance-officer"
@@ -1035,7 +1035,7 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
           GH_AW_AGENT_OUTPUT: ${{ env.GH_AW_AGENT_OUTPUT }}
-          GH_AW_WORKFLOW_NAME: "Grumpy Compliance Checker 😤"
+          GH_AW_WORKFLOW_NAME: "Grumpy Compliance Checker"
           GH_AW_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           GH_AW_AGENT_CONCLUSION: ${{ needs.agent.result }}
           GH_AW_NOOP_MESSAGE: ${{ steps.noop.outputs.noop_message }}
@@ -1081,7 +1081,7 @@ jobs:
       - name: Setup threat detection
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         env:
-          WORKFLOW_NAME: "Grumpy Compliance Checker 😤"
+          WORKFLOW_NAME: "Grumpy Compliance Checker"
           WORKFLOW_DESCRIPTION: "Compliance officer that validates code against organisation shared standards, stored in the nathlan/shared-standards repository"
           HAS_PATCH: ${{ needs.agent.outputs.has_patch }}
         with:
@@ -1184,7 +1184,7 @@ jobs:
       GH_AW_ENGINE_ID: "copilot"
       GH_AW_SAFE_OUTPUT_MESSAGES: "{\"footer\":\"\\u003e 😤 *Reluctantly reviewed by [{workflow_name}]({run_url})*\",\"runStarted\":\"😤 *sigh* [{workflow_name}]({run_url}) is begrudgingly looking at this {event_type}... This better be worth my time.\",\"runSuccess\":\"😤 Fine. [{workflow_name}]({run_url}) finished the review. It wasn't completely terrible. I guess. 🙄\",\"runFailure\":\"😤 Great. [{workflow_name}]({run_url}) {status}. As if my day couldn't get any worse...\"}"
       GH_AW_WORKFLOW_ID: "grumpy-compliance-officer"
-      GH_AW_WORKFLOW_NAME: "Grumpy Compliance Checker 😤"
+      GH_AW_WORKFLOW_NAME: "Grumpy Compliance Checker"
     outputs:
       create_discussion_error_count: ${{ steps.process_safe_outputs.outputs.create_discussion_error_count }}
       create_discussion_errors: ${{ steps.process_safe_outputs.outputs.create_discussion_errors }}

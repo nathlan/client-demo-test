@@ -75,15 +75,23 @@ When running on a PR:
 
 ### Step 1: Load Prior Review State
 
-**Before doing anything else** — check cache-memory for prior review state on this PR. Use a per-PR file (e.g. `pr-${{ github.event.pull_request.number }}.json`) as the source of truth for what you previously commented on. If no file exists, this is the first review. If it exists, load it so you can avoid duplicate comments and track which violations are still open versus resolved.
+Check cache-memory for prior review state on this PR (e.g. `pr-${{ github.event.pull_request.number }}.json`). This file tracks metadata: review count, when violations were first flagged, violation categories, and summary counts. If the file exists, load it for context. If it doesn't exist (first review or cache evicted after 7 days), that's fine — Step 2 will discover prior comments directly from the GitHub API.
 
-### Step 2: Fetch Pull Request and Commit Details
+### Step 2: Fetch Pull Request, Commit Details, and Discover Prior Comments
 
 Use the tools to get:
 - The PR with number `${{ github.event.pull_request.number }}` in repository `${{ github.repository }}`
 - The list of files changed in the PR
 - Review the diff for each changed file
 - The changes in the latest commit of the PR (for subsequent reviews)
+- **All existing review comments on the PR** — filter for comments whose body contains the marker `<!-- gh-aw-workflow-id: grumpy-compliance-officer -->` (automatically injected by safe-outputs into every comment this workflow creates). These are your prior comments. For each one, note:
+  - `id` (numeric comment ID) — used for `reply-to-pull-request-review-comment`
+  - `path` (file) and body text — to identify which standard/rule it references
+- **The PR’s review threads** — query the PR’s review threads (via GraphQL `pullRequest.reviewThreads`) to get each thread’s `id` (GraphQL `PRRT_...` ID, needed for `resolve-pull-request-review-thread`). Each thread contains comments — match threads to your discovered comments by the comment content.
+
+> **Important:** The REST API’s `node_id` for a review comment is `PRRC_...` (the comment’s GraphQL ID), which is NOT the same as the thread’s `PRRT_...` ID. You must get thread IDs from the `reviewThreads` query.
+
+This API-based discovery is the **primary mechanism** for identifying prior comments and avoiding duplicates — it works even if cache-memory was evicted.
 
 ### Step 3: Check Compliance
 
@@ -115,7 +123,11 @@ After analyzing the code (Step 3), build a list of **current violations** — ea
 
 #### 4B: Match against prior comments
 
-If you have prior violation data (from memory in Step 1, or from comment discovery in Step 2), match each prior violation to the current violation list by **file path + standard/rule referenced**. Line numbers may shift between commits so match on the rule, not the exact line.
+Using the workflow-marker-filtered comments and review threads from Step 2, match each prior comment to the current violation list by **file path (`path` field) + standard/rule referenced in the comment body**. Line numbers may shift between commits so match on the rule, not the exact line.
+
+For each matched prior comment you need two IDs:
+- The comment’s numeric `id` → for `reply-to-pull-request-review-comment`
+- The parent thread’s GraphQL `PRRT_...` ID → for `resolve-pull-request-review-thread`
 
 Classify each prior comment as:
 - **Still violated** — the same standard is still violated in the same file
@@ -124,11 +136,11 @@ Classify each prior comment as:
 #### 4C: Act on each classification
 
 **For fixed violations** (the developer addressed your feedback):
-- Call `resolve-pull-request-review-thread` with the thread's GraphQL ID (`PRRT_...`)
+- Call `resolve-pull-request-review-thread` with the thread’s `PRRT_...` ID (from the review threads query, not the comment’s `node_id`)
 - Reluctantly acknowledge the fix was made
 
 **For still-violated issues** (the developer ignored your feedback):
-- Call `reply-to-pull-request-review-comment` with the original comment's numeric ID
+- Call `reply-to-pull-request-review-comment` with the `id` from the matched comment
 - Include a grumpy reminder: "Still not fixed. I already flagged this."
 - Do NOT create a new review comment for this — reply to the existing thread
 
@@ -148,10 +160,12 @@ The review `body` should summarise: total violations (new + continuing), progres
 
 ### Step 5: Save Review State
 
-Save your complete review state to cache-memory so the next run can resume where you left off. Persist a per-PR file (e.g. `pr-${{ github.event.pull_request.number }}.json`) containing:
-- Every violation found (open and resolved), with the `comment_id` and `thread_id` so you can reply to or resolve existing threads on subsequent runs
+Save your review state to cache-memory so the next run has additional context. Persist a per-PR file (e.g. `pr-${{ github.event.pull_request.number }}.json`) containing:
+- Every violation found (open and resolved), with file path and standard/rule
 - The review number (increment each run), commit SHA, and timestamp
 - Summary counts and violation categories
+
+This data supplements the API-based comment discovery in Step 2 by providing metadata that isn't available from the comments themselves (review count, first-flagged timestamps, cross-run violation history). You do not need to save `comment_id` or `thread_id` — these are discovered fresh each run from the API.
 
 Also maintain a cross-PR log (e.g. `reviews.json`) to track patterns across reviews.
 

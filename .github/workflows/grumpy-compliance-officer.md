@@ -8,21 +8,13 @@ permissions:
   contents: read
   pull-requests: read
 steps:
-  - name: Checkout repository
-    uses: actions/checkout@v6.0.2
-    with:
-      persist-credentials: false
-  - name: Checkout `nathlan/shared-standards` repository
-    uses: actions/checkout@v6.0.2
-    with:
-      repository: nathlan/shared-standards
-      token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
-      path: /tmp/shared-standards
-      sparse-checkout: .github/instructions/standards.instructions.md
-  - name: Copy standards to agent directory
+  - name: Fetch shared standards
     run: |
-      mkdir -p /tmp/gh-aw/agent
-      cp /tmp/shared-standards/.github/instructions/standards.instructions.md /tmp/gh-aw/agent/standards.instructions.md
+      curl -sL \
+        -H "Authorization: Bearer ${{ secrets.GH_AW_GITHUB_TOKEN }}" \
+        -H "Accept: application/vnd.github.raw+json" \
+        "https://api.github.com/repos/nathlan/shared-standards/contents/.github/instructions/standards.instructions.md" \
+        -o /tmp/gh-aw/agent/standards.instructions.md
 network:
   allowed:
     - defaults

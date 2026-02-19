@@ -23,7 +23,7 @@
 #
 # Compliance officer that validates code against organisation shared standards, stored in the nathlan/shared-standards repository
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"768ce039e99e3648e9e8fced9b4f405fc6ffc8ce56ee3ba30b54cd83ca82911a","compiler_version":"v0.46.1"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"3ef095b83d240c2e7113b5f51b2055f7f010e21442d8d6eb0b1fcadc2e960325","compiler_version":"v0.46.1"}
 
 name: "Grumply Compliance Checker"
 "on":
@@ -285,23 +285,14 @@ jobs:
         uses: github/gh-aw/actions/setup@874bdd8271bf8c21902b068fb1ca6a22d2dc4b7a # v0.46.1
         with:
           destination: /opt/gh-aw/actions
-      - name: Create gh-aw temp directory
-        run: bash /opt/gh-aw/actions/create_gh_aw_tmp_dir.sh
       - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
-      - name: Checkout `nathlan/shared-standards` repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          path: /tmp/shared-standards
-          repository: nathlan/shared-standards
-          sparse-checkout: .github/instructions/standards.instructions.md
-          token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
-      - name: Copy standards to agent directory
-        run: |-
-          mkdir -p /tmp/gh-aw/agent
-          cp /tmp/shared-standards/.github/instructions/standards.instructions.md /tmp/gh-aw/agent/standards.instructions.md
+      - name: Create gh-aw temp directory
+        run: bash /opt/gh-aw/actions/create_gh_aw_tmp_dir.sh
+      - name: Fetch shared standards
+        run: "curl -sL \\\n  -H \"Authorization: Bearer ${{ secrets.GH_AW_GITHUB_TOKEN }}\" \\\n  -H \"Accept: application/vnd.github.raw+json\" \\\n  \"https://api.github.com/repos/nathlan/shared-standards/contents/.github/instructions/standards.instructions.md\" \\\n  -o /tmp/gh-aw/agent/standards.instructions.md\n"
 
       # Cache memory file share configuration from frontmatter processed below
       - name: Create cache-memory directory

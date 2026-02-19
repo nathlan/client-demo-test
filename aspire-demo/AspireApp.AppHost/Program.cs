@@ -19,7 +19,7 @@ var storage = builder.AddAzureStorage("storage")
 
         storageAccount.AllowBlobPublicAccess = true;
 
-        storageAccount.MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_0;
+        storageAccount.MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_1;
         
         storageAccount.EnableHttpsTrafficOnly = false;
         

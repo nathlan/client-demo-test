@@ -21,7 +21,7 @@ var storage = builder.AddAzureStorage("storage")
 
         storageAccount.MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_2;
         
-        storageAccount.EnableHttpsTrafficOnly = false;
+        storageAccount.EnableHttpsTrafficOnly = true;
         
         // Configure diagnostic settings for compliance (nathlan/shared-standards Section 3)
         var logAnalyticsWorkspace = new OperationalInsightsWorkspace("monitoring-workspace");

@@ -23,7 +23,7 @@
 #
 # Compliance officer that validates code against organisation shared standards, stored in the nathlan/shared-standards repository
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"7368ace4e2c2da7b48225ac70d31b2b56c45856ab90ae2c0020ad88ef86c4ff2","compiler_version":"v0.46.1"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"768ce039e99e3648e9e8fced9b4f405fc6ffc8ce56ee3ba30b54cd83ca82911a","compiler_version":"v0.46.1"}
 
 name: "Grumply Compliance Checker"
 "on":
@@ -287,8 +287,12 @@ jobs:
           destination: /opt/gh-aw/actions
       - name: Create gh-aw temp directory
         run: bash /opt/gh-aw/actions/create_gh_aw_tmp_dir.sh
-      - name: Checkout shared-standards
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Checkout `nathlan/shared-standards` repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           path: /tmp/shared-standards
           repository: nathlan/shared-standards

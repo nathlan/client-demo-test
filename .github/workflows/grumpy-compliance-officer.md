@@ -8,8 +8,12 @@ permissions:
   contents: read
   pull-requests: read
 steps:
-  - name: Checkout shared-standards
-    uses: actions/checkout@v5
+  - name: Checkout repository
+    uses: actions/checkout@v6.0.2
+    with:
+      persist-credentials: false
+  - name: Checkout `nathlan/shared-standards` repository
+    uses: actions/checkout@v6.0.2
     with:
       repository: nathlan/shared-standards
       token: ${{ secrets.GH_AW_GITHUB_TOKEN }}

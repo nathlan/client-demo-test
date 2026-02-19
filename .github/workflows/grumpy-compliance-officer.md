@@ -21,7 +21,7 @@ network:
     - github
 tools:
   github:
-    toolsets: [pull_requests, repos]
+    toolsets: [actions, pull_requests, repos]
   cache-memory: true
 safe-outputs:
   create-pull-request-review-comment:

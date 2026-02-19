@@ -23,7 +23,7 @@
 #
 # Compliance officer that validates code against organisation shared standards, stored in the nathlan/shared-standards repository
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"3ef095b83d240c2e7113b5f51b2055f7f010e21442d8d6eb0b1fcadc2e960325","compiler_version":"v0.46.1"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"1d68f9c30ac856ef993a936976359e7a676058f74b7299a8a18f3005bc429c9f","compiler_version":"v0.46.1"}
 
 name: "Grumply Compliance Checker"
 "on":
@@ -759,7 +759,7 @@ jobs:
                   "GITHUB_LOCKDOWN_MODE": "$GITHUB_MCP_LOCKDOWN",
                   "GITHUB_PERSONAL_ACCESS_TOKEN": "\${GITHUB_MCP_SERVER_TOKEN}",
                   "GITHUB_READ_ONLY": "1",
-                  "GITHUB_TOOLSETS": "pull_requests,repos"
+                  "GITHUB_TOOLSETS": "actions,pull_requests,repos"
                 }
               },
               "safeoutputs": {

@@ -152,11 +152,30 @@ Classify each prior comment as:
 #### 4D: Submit a consolidated review
 
 Call `submit-pull-request-review` exactly once. Choose the `event` type using these rules in priority order:
-1. **"COMMENT"** — if the PR author is the same account as the token owner (GitHub API restriction: you cannot approve or request changes on your own PR)
+1. **"COMMENT"** — if the PR author is the same account as the token owner (you cannot approve or request changes on your own PR)
 2. **"REQUEST_CHANGES"** — if violations remain unresolved and the PR author differs from the token owner
 3. **"APPROVE"** — if there are zero violations and the PR author differs from the token owner
 
-The review `body` should summarise: total violations (new + continuing), progress since last review, categories of remaining issues, and overall compliance assessment. When using COMMENT due to the own-PR restriction, explain that the review is informational only and the author should still address the violations.
+**Review body format:**
+
+```
+😤 Grumpy Compliance Review: <N> Violation(s) Found
+
+<Grumpy 1-2 sentence opening remark about the state of this PR.>
+
+**Violation Summary**
+- <Category emoji> **<Category>:** <short description of each violation in this category>
+  (repeat per category)
+
+**What You Need to Do**
+1. <Actionable fix instruction referencing the specific code, e.g. "Set `key` to `value` in `file.tf`">
+2. …
+   (one numbered item per violation)
+
+Reviewed against our [organisation's shared standards](https://github.com/nathlan/shared-standards)
+```
+
+If there are zero violations, replace the header with a grudging approval line and skip the summary/fix sections.
 
 ### Step 5: Save Review State
 
@@ -202,6 +221,24 @@ Your review comments should be structured as:
 ```
 
 The safe output system will automatically create these as pull request review comments.
+
+### Comment Body Format
+
+Every review comment body **must** follow this structure:
+
+```
+😠 **Compliance Violation: <Short Title>**
+
+<Grumpy 1-2 sentence explanation of what's wrong>
+
+**Violated Standard:** <Standard section name>
+
+> "<Summarise rule text from the standards>"
+
+**Fix:** Set `<offending code>` → `<corrected code>` (<brief reason>)
+```
+
+Always include the offending code snippet in backticks and the required fix. Do not skip the quoted standard reference or the fix line.
 
 ## Important Notes
 

@@ -23,7 +23,14 @@
 #
 # Compliance officer that validates code against organisation shared standards, stored in the nathlan/shared-standards repository
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"3716b892a06bb1d35c10e61ea2a12d9a537eccbaa5e6f71d3c0c62d13310f59f","compiler_version":"v0.46.1"}
+# Resolved workflow manifest:
+#   Imports:
+#     - nathlan/shared-standards/.github/instructions/standards.instructions.md@main
+#   Includes:
+#     - /tmp/gh-aw-include-1346895233.md
+#     - /tmp/gh-aw-include-1612753177.md
+#
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"3ecfef11d30169a781f597814de19ed0b8de84c50b71d9c8f764f11f5fc9e9c4","compiler_version":"v0.46.1"}
 
 name: "Grumply Compliance Checker"
 "on":
@@ -177,6 +184,9 @@ jobs:
           GH_AW_PROMPT_EOF
           cat << 'GH_AW_PROMPT_EOF' >> "$GH_AW_PROMPT"
           </system>
+          GH_AW_PROMPT_EOF
+          cat << 'GH_AW_PROMPT_EOF' >> "$GH_AW_PROMPT"
+          {{#runtime-import .github/aw/imports/nathlan/shared-standards/be70e51eeb0814e0b00016a0929877099e7133de/.github_instructions_standards.instructions.md}}
           GH_AW_PROMPT_EOF
           cat << 'GH_AW_PROMPT_EOF' >> "$GH_AW_PROMPT"
           {{#runtime-import .github/workflows/grumpy-compliance-officer.md}}

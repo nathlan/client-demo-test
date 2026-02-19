@@ -17,9 +17,9 @@ var storage = builder.AddAzureStorage("storage")
             .OfType<StorageAccount>()
             .Single();
 
-        storageAccount.AllowBlobPublicAccess = true;
+        storageAccount.AllowBlobPublicAccess = false;
 
-        storageAccount.MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_2;
+        storageAccount.MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_0;
         
         storageAccount.EnableHttpsTrafficOnly = true;
         

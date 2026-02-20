@@ -6,9 +6,6 @@ using System.Linq;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
-// WARNING: This is an intentionally INSECURE configuration for demonstration purposes
-// DO NOT use these settings in production!
-
 var storage = builder.AddAzureStorage("storage")
     .ConfigureInfrastructure(infrastructure =>
     {
@@ -19,12 +16,31 @@ var storage = builder.AddAzureStorage("storage")
 
         storageAccount.AllowBlobPublicAccess = false;
 
-        storageAccount.MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_0;
+        storageAccount.MinimumTlsVersion = StorageMinimumTlsVersion.Tls1_3;
         
         storageAccount.EnableHttpsTrafficOnly = true;
+
+        var demoSubnet = Azure.Provisioning.Network.Subnet.FromExisting("demo-subnet");
+
+        var storagePrivateEndpoint = new Azure.Provisioning.Network.PrivateEndpoint("storage-private-endpoint")
+        {
+            Subnet = new Azure.Provisioning.Network.SubnetData { Id = demoSubnet.Id },
+            PrivateLinkServiceConnections =
+            {
+                new Azure.Provisioning.Network.PrivateLinkServiceConnection
+                {
+                    Name = "storage-blob-connection",
+                    PrivateLinkServiceId = storageAccount.Id,
+                    GroupIds = { "blob" }
+                }
+            }
+        };
+
+        infrastructure.Add(demoSubnet);
+        infrastructure.Add(storagePrivateEndpoint);
         
-        // Configure diagnostic settings for compliance (nathlan/shared-standards Section 3)
-        var logAnalyticsWorkspace = new OperationalInsightsWorkspace("monitoring-workspace");
+        // Configure diagnostic settings for compliance
+        var logAnalyticsWorkspace = OperationalInsightsWorkspace.FromExisting("monitoring-workspace");
         
         var diagnosticSettings = new DiagnosticSetting("storageAccountDiagnostics")
         {

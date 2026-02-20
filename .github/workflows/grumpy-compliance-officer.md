@@ -112,10 +112,6 @@ Use the GitHub tools to get the pull request details:
 
 Compare the PR code changes against the compliance rules from `nathlan/shared-standards/.github/instructions/standards.instructions.md`. 
 
-You may inspect broader file context for compliance, but PR inline comments can only target lines that exist in the current PR diff.
-If a violation is outside the diff (or the exact line cannot be resolved in the patch), do **not** create an inline review comment for it.
-Include those findings in the consolidated review body with file path and actionable fix guidance.
-
 **Check ALL changed files** - This includes:
 - Infrastructure as Code: Terraform (.tf), Bicep (.bicep), Aspire (Program.cs in AppHost projects), CloudFormation, etc.
 - Application code: C#, Python, TypeScript, JavaScript, Go, Java, etc.
@@ -136,8 +132,7 @@ You MUST follow this algorithm precisely. Do NOT create duplicate comments for v
 
 #### 4A: Build a violation map
 
-After analyzing the code (Step 3), build a list of **current violations** — each with: file path, standard/rule violated, and description.
-Add `line` only when that line is present in the current PR diff and can be commented inline.
+After analyzing the code (Step 3), build a list of **current violations** — each with: file path, line number, standard/rule violated, and description.
 
 #### 4B: Match against prior comments
 
@@ -159,10 +154,9 @@ Classify each prior comment as:
 - Do NOT create a new review comment for this — reply to the existing thread
 
 **For new violations** (not covered by any prior comment):
-- Only call `create-pull-request-review-comment` when the target line is in the current PR diff and resolvable
-- Before creating each inline comment, verify the file and line appear in the RIGHT-side patch hunk context
-- If the line is not resolvable (or uncertain), skip inline creation and include that finding in the consolidated review body instead
-- Reference the specific standard violated and explain what to change
+- Call `create-pull-request-review-comment` with file, line, and violation details
+- Reference the specific standard violated
+- Explain what is non-compliant and provide the fix
 
 #### 4D: Submit a consolidated review
 

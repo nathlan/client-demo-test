@@ -23,7 +23,7 @@
 #
 # Sync content from `nathlan/shared-assets/sync/` into matching repository-root paths in this repository.
 #
-# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"a725a4f402c61d96331eeaada3dc7963e7606d6a0856ee1f3695c3395216dc43","compiler_version":"v0.49.2"}
+# gh-aw-metadata: {"schema_version":"v1","frontmatter_hash":"89612830dc349ce582c299942a2c176c46696603dc8432cce96bde1f4632b512","compiler_version":"v0.49.2"}
 
 name: "Sync Shared Assets"
 "on":
@@ -230,15 +230,14 @@ jobs:
         uses: github/gh-aw/actions/setup@1c8368cbfb9ff0cc0781d2d76586fabb3035b0cf # v0.49.2
         with:
           destination: /opt/gh-aw/actions
-      - name: Create gh-aw temp directory
-        run: bash /opt/gh-aw/actions/create_gh_aw_tmp_dir.sh
-      - name: Checkout source repo to sync from
+      - name: Checkout repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          path: source-repo
           persist-credentials: false
-          repository: nathlan/shared-assets
-          token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
+      - name: Create gh-aw temp directory
+        run: bash /opt/gh-aw/actions/create_gh_aw_tmp_dir.sh
+      - name: Download source repo archive
+        run: "mkdir -p /tmp/gh-aw/agent/source-repo\ncurl -fsSL \\\n  -H \"Authorization: Bearer ${{ secrets.GH_AW_GITHUB_TOKEN }}\" \\\n  -H \"Accept: application/vnd.github+json\" \\\n  \"https://api.github.com/repos/nathlan/shared-assets/tarball\" \\\n  -o /tmp/gh-aw/agent/source-repo.tar.gz\ntar -xzf /tmp/gh-aw/agent/source-repo.tar.gz --strip-components=1 -C /tmp/gh-aw/agent/source-repo\nrm -f /tmp/gh-aw/agent/source-repo.tar.gz\n"
 
       - name: Configure Git credentials
         env:

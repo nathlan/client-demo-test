@@ -31,8 +31,8 @@
     "ghcr.io/devcontainers/features/azure-cli:1": {
     }
   },
-  "remoteUser": "vscode",
+  "initializeCommand": "mkdir -p ${localEnv:HOME}/.azure",
   "mounts": [
-    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.azure,target=/home/vscode/.azure,type=bind,consistency=cached" // Mount Azure CLI credentials if they exist on the host machine
+    "source=${localEnv:HOME}/.azure,target=/home/vscode/.azure,type=bind,consistency=cached"
   ]
 }

@@ -1,6 +1,6 @@
 ---
 name: Sync Shared Assets
-description: Sync content from the `nathlan/shared-assets/sync/` directory to the `.github/` directory in this repository.
+description: Sync content from `nathlan/shared-assets/sync/` into matching repository-root paths in this repository.
 on:
   schedule: daily between 02:00 utc+12 and 03:00 utc+12 #  Using fuzzy schedule 'daily' instead to distribute workflow execution times. Will run between 3-4 AM during daylight savings
   workflow_dispatch: {}
@@ -8,6 +8,14 @@ permissions:
   actions: read
   contents: read
   issues: read
+steps:
+  - name: Checkout source repo to sync from
+    uses: actions/checkout@v6.0.2
+    with:
+      repository: nathlan/shared-assets
+      token: ${{ secrets.GH_AW_GITHUB_TOKEN }}
+      path: source-repo
+      persist-credentials: false
 network:
   allowed:
     - defaults
@@ -15,15 +23,6 @@ network:
 tools:
   github:
     toolsets: [actions, issues, repos]
-engine:
-  id: copilot
-  steps:
-    - name: Checkout source repo to sync from
-      uses: actions/checkout@v6
-      with:
-        repository: nathlan/shared-assets
-        token: ${{ secrets.GH_AW_AGENT_TOKEN }}
-        path: source-repo
 safe-outputs:
   github-token: ${{ secrets.GH_AW_AGENT_TOKEN }}
   create-issue:
@@ -36,14 +35,22 @@ safe-outputs:
 
 # Sync Shared Assets from Source
 
-This workflow synchronizes the contents of the `.github/` directory in this repository with the `sync/` directory from the `nathlan/shared-assets` repository. It runs daily or can be triggered manually.' This is a one-way sync, from the remote `sync/` directory to this local repository.
+This workflow synchronizes the `sync/` directory from the `nathlan/shared-assets` repository into matching paths at the root of this repository. It runs daily or can be triggered manually. This is a one-way sync, from the remote `sync/` directory to this local repository.
+
+Current sync scope:
+
+- `sync/.github/**` -> `.github/**`
+- `sync/.devcontainer/**` -> `.devcontainer/**`
+- `sync/.vscode/**` -> `.vscode/**`
+
+File types in scope include all files under the mapped paths, including Markdown and text files such as `.md`, `.mdx`, `.txt`, `.json`, `.yml`, and `.yaml`.
 
 ## GitHub navigation guide
 
 - **Source repo**: `nathlan/shared-assets`
 - **Source sync folder**: `source-repo/sync/` (checked out locally)
 - **Target repo**:  This repository where this workflow is running.
-- **Target sync folder**: `.github/` (in the current directory)
+- **Target sync root**: repository root (`./`) where `sync/` subfolders are mapped 1:1
 
 ## Tools
 
@@ -53,11 +60,17 @@ This workflow synchronizes the contents of the `.github/` directory in this repo
 ## Sync Process
 
 1) **Read Source**: Read the contents of the `source-repo/sync/` folder from the local filesystem.
-2) **Read Target**: Read the current contents of the `.github/` folder from the local filesystem.
-3) **Compare**: Compare the source `source-repo/sync/` folder contents with the local `.github/` contents:
+2) **Read Target**: Read the current contents of the repository root folders mapped from sync scope (`.github/`, `.devcontainer/`, `.vscode/`).
+3) **Compare**: Compare source and target using this path mapping:
 
-- Identify files that are missing in the local `.github/` folder.
-- Identify files that have changed content compared to the source.
+- `source-repo/sync/.github/**` -> `.github/**`
+- `source-repo/sync/.devcontainer/**` -> `.devcontainer/**`
+- `source-repo/sync/.vscode/**` -> `.vscode/**`
+
+- Compare every file type in those paths.
+- Identify files that are missing in local target paths.
+- Identify files that have changed content compared to source.
+- Ignore files outside the mapped scope above.
 - **Note**: This is a one way sync, we never sync changes back to the `source-repo/sync/` folder.
 
 4) **Create Issue**: If you've determined there are changes required in this repository:
@@ -66,9 +79,11 @@ This workflow synchronizes the contents of the `.github/` directory in this repo
 - The issue must be assigned to `copilot`.
 - The issue title must start with `[shared-assets-sync]`.
 - The issue body must include:
-  - teps for Copilot to perform the update:
+  - Steps for Copilot to perform the update:
     - Provide copilot a list of new files to add/replace locally from the `nathlan/shared-assets` repository. 
+      - Include Markdown and documentation updates (`.md`, `.mdx`, `.txt`) when they differ.
       - If you instruct copilot to retrieve the new file, make sure it removes the preamble before the code starts. For example, on the first line, the code used to be just `#`, but after copilot processed the file it looked like this: `successfully downloaded text file (SHA: ef9bd9a087ef88a25981e3a00bb335ca5af6ba07)#`
+      - Include each file with explicit source -> target path mapping (for example: `source-repo/sync/.vscode/mcp.json` -> `.vscode/mcp.json`).
       - You should only instruct copilot to replace an entire file if the local file has no unique content that is not present in the source file. 
       - If there is unique content in the local file, you should provide line by line instructions to copilot on how to update the file instead of replacing the entire file. Be specific and don't leave anything to the copilot cloud coding agent to determine itself.  
   - Explicit instructions to the copilot agent, where:

@@ -49,7 +49,8 @@ jobs:
   # Call the parent reusable workflow from the central repository
   deploy:
     name: Deploy to Azure
-    uses: nathlan/.github-workflows/.github/workflows/azure-terraform-deploy.yml@main
+    # uses: nathlan/shared-assets/.github/workflows/azure-terraform-deploy.yml@feature/CICD
+    uses: nathlan/shared-assets/.github/workflows/azure-terraform-deploy.yml@main
 
     with:
       # REQUIRED: Deployment environment (must match environment in repo settings)

@@ -25,9 +25,15 @@ network:
     - github
 tools:
   github:
+    mode: remote
     toolsets: [actions, issues, repos]
 safe-outputs:
   github-token: ${{ secrets.GH_AW_AGENT_TOKEN }}
+  upload-asset:
+    branch: "assets/sync-shared-assets"
+    allowed-exts: [.md, .json, .yml, .yaml]
+    max-size: 10240
+    max: 50
   create-issue:
     assignees: [copilot]
     title-prefix: "[shared-assets-sync] "
@@ -58,7 +64,7 @@ File types in scope include all files under the mapped paths, including Markdown
 ## Tools
 
 - You have access to `github` tools.
-- You have the `safeoutputs` tools to create issues on the current repository.
+- You have the `safeoutputs` tools: `create_issue` to create issues, and `upload_asset` to upload source files to the `assets/sync-shared-assets` orphaned branch.
 - You also have the `noop` safe output tool for no-change runs.
 
 ## Sync Process
@@ -74,25 +80,44 @@ File types in scope include all files under the mapped paths, including Markdown
 - Compare every file type in those paths.
 - Identify files that are missing in local target paths.
 - Identify files that have changed content compared to source.
+- Identify lines/blocks present in target but removed from source, and treat those as required deletions.
 - Ignore files outside the mapped scope above.
 - **Note**: This is a one way sync, we never sync changes back to the `source-repo/sync/` folder.
 
+### Historical intent verification (required)
+
+For every target-only line/block found in mapped paths, you must verify intent using history before deciding whether to preserve or delete:
+
+1. Check local repository history for the target file (for example with `git log -p -- <target-path>` and `git blame <target-path>`).
+2. Check upstream history for the mapped source file in `nathlan/shared-assets` using `github` tools (`repos` toolset) and inspect recent commits touching the source path.
+3. If upstream history shows that the line/block was removed (or the related input/setting was removed), treat it as intentional upstream deletion and instruct removal downstream.
+4. If history is unavailable or ambiguous, default to source-authoritative behavior and remove the target-only line/block.
+
+### Deletion precedence rules (critical)
+
+- The source file in `/tmp/gh-aw/agent/source-repo/sync/**` is authoritative for synced paths.
+- If a line/setting exists in target but does not exist in source, it is drift and must be removed unless history verification proves an intentional downstream-only customization that is still valid.
+- Do **not** classify a line as "unique local content to preserve" when that line was intentionally removed upstream.
+
 4) **Create Issue**: If you've determined there are changes required in this repository:
 
-- Create an issue in this repository using the `create-issue` safe output.
-- The issue must be assigned to `copilot`.
-- The issue title must start with `[shared-assets-sync]`.
-- The issue body must include:
-  - Steps for Copilot to perform the update:
-    - Provide copilot a list of new files to add/replace locally from `/tmp/gh-aw/agent/source-repo/` (which mirrors `nathlan/shared-assets`). 
-      - Include Markdown and documentation updates (`.md`, `.mdx`, `.txt`) when they differ.
-      - If you instruct copilot to retrieve the new file, make sure it removes the preamble before the code starts. For example, on the first line, the code used to be just `#`, but after copilot processed the file it looked like this: `successfully downloaded text file (SHA: ef9bd9a087ef88a25981e3a00bb335ca5af6ba07)#`
-      - Include each file with explicit source -> target path mapping (for example: `/tmp/gh-aw/agent/source-repo/sync/.vscode/mcp.json` -> `.vscode/mcp.json`).
-      - You should only instruct copilot to replace an entire file if the local file has no unique content that is not present in the source file. 
-      - If there is unique content in the local file, you should provide line by line instructions to copilot on how to update the file instead of replacing the entire file. Be specific and don't leave anything to the copilot cloud coding agent to determine itself.  
-  - Explicit instructions to the copilot agent, where:
-    - The PR title must start with `[shared-assets-sync] `
-    - The PR must have the same labels as the issue i.e. `[agentic-workflow, shared-assets-sync, platform-engineering]`
+- **Upload source files**: For every source file that is new or has changed content, use the `upload_asset` safe output to upload it from its path under `/tmp/gh-aw/agent/source-repo/sync/`.
+  - **Important**: The `upload_asset` tool stores files on the asset branch using **content-hash filenames** (e.g. `c82d7f99...db0.json`), not the name you provide. After each upload, record the **actual hash-based filename** returned by the tool — you will need it for the issue instructions.
+  - Files without a recognised extension (e.g. `CODEOWNERS`, `.gitignore`) cannot be uploaded via `upload_asset`. For those files, embed their full content directly in the issue body inside a collapsible `<details>` block with a fenced code block.
+
+- **Create the issue** using the `create-issue` safe output.
+  - The issue will automatically be assigned to `copilot`.
+  - The issue title must start with `[shared-assets-sync]`.
+  - The issue body must include:
+    - A brief summary of what changed and why.
+    - A **file manifest** table with columns: **Asset name** (the hash-based filename returned by `upload_asset`), **Target path** (repo-root-relative), **Action** (`add` | `replace` | `update`).
+    - Step-by-step instructions for the Copilot coding agent:
+      1. Fetch the asset branch that contains the source files: `git fetch origin assets/sync-shared-assets`
+      2. For each file in the manifest, read it from the asset branch using the **hash-based asset name** and write it to the target path: `git show origin/assets/sync-shared-assets:<hash-asset-name> > <target-path>` (e.g. `git show origin/assets/sync-shared-assets:c82d7f99...db0.yml > .github/workflows/foo.yml`)
+      3. For files requiring **partial updates** (unique local content to preserve), provide **line-by-line instructions** with the exact content to find and replace. Do not leave anything for the agent to decide.
+      4. For files with **deletion** instructions (lines removed upstream), provide explicit find-and-remove instructions with a short `Deletion rationale` section.
+      5. For extensionless files embedded directly in the issue body, instruct the agent to write the embedded content verbatim to the target path.
+      6. Instructions for `copilot` to update the existing PR title to be start with `[shared-assets-sync] ` followed by a concise description of the change (e.g. "sync upstream changes to .github/workflows/foo.yml").
 
 5) **No Changes**: If you've determined there are no changes required in this repository:
 
